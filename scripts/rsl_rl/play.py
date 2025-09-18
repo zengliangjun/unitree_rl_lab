@@ -38,8 +38,6 @@ args_cli = parser.parse_args()
 if args_cli.video:
     args_cli.enable_cameras = True
 
-args_cli.task = "UnitreeG129dofEx"
-
 # launch omniverse app
 app_launcher = AppLauncher(args_cli)
 simulation_app = app_launcher.app
