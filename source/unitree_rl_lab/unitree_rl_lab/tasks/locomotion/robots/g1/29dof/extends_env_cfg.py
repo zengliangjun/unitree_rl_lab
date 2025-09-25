@@ -1,25 +1,12 @@
 import math
 
-import isaaclab.sim as sim_utils
-import isaaclab.terrains as terrain_gen
-from isaaclab.assets import ArticulationCfg, AssetBaseCfg
-from isaaclab.envs import ManagerBasedRLEnvCfg
-from isaaclab.managers import CurriculumTermCfg as CurrTerm
-from isaaclab.managers import EventTermCfg as EventTerm
-from isaaclab.managers import ObservationGroupCfg as ObsGroup
-from isaaclab.managers import ObservationTermCfg as ObsTerm
+
 from isaaclab.managers import RewardTermCfg as RewTerm
 from isaaclab.managers import SceneEntityCfg
-from isaaclab.managers import TerminationTermCfg as DoneTerm
-from isaaclab.scene import InteractiveSceneCfg
-from isaaclab.sensors import ContactSensorCfg, RayCasterCfg, patterns
-from isaaclab.terrains import TerrainImporterCfg
 from isaaclab.utils import configclass
-from isaaclab.utils.assets import ISAAC_NUCLEUS_DIR, ISAACLAB_NUCLEUS_DIR
-from isaaclab.utils.noise import AdditiveUniformNoiseCfg as Unoise
 
-from unitree_rl_lab.assets.robots.unitree import UNITREE_G1_29DOF_CFG as ROBOT_CFG
 from unitree_rl_lab.tasks.locomotion import mdp
+from unitree_rl_lab.assets.terrains.config import rough_low_level_cfg
 
 from . import velocity_env_cfg
 
@@ -79,7 +66,42 @@ class RewardsCfg(velocity_env_cfg.RewardsCfg):
 class RobotEnvCfg(velocity_env_cfg.RobotEnvCfg):
     rewards: RewardsCfg = RewardsCfg()
 
-
 @configclass
 class RobotPlayEnvCfg(velocity_env_cfg.RobotPlayEnvCfg):
     rewards: RewardsCfg = RewardsCfg()
+
+
+@configclass
+class RewardsTimeCfg(RewardsCfg):
+    rew_steps = RewTerm(
+        func=mdp.TimesSymmetry,
+        weight=0.1,
+        params={
+            "command_name": "base_velocity",
+            "sensor_cfg": SceneEntityCfg(
+                "contact_forces",
+                body_names=[
+                    ".*left_ankle_roll_link",
+                    ".*right_ankle_roll_link"
+                ]
+            ),
+            "error_std": 0.1
+        },
+    )
+
+@configclass
+class RobotStepsCfg(RobotEnvCfg):
+    rewards: RewardsTimeCfg = RewardsTimeCfg()
+
+    def __post_init__(self):
+        super().__post_init__()
+        self.commands.base_velocity.limit_ranges.lin_vel_x = (0, 1.0)
+
+@configclass
+class RobotStepsPlayCfg(RobotPlayEnvCfg):
+    rewards: RewardsTimeCfg = RewardsTimeCfg()
+
+    def __post_init__(self):
+        super().__post_init__()
+        self.commands.base_velocity.limit_ranges.lin_vel_x = (0, 1.0)
+
