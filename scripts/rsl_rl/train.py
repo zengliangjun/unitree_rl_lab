@@ -45,6 +45,15 @@ app_launcher = AppLauncher(args_cli)
 simulation_app = app_launcher.app
 
 """Check for minimum supported RSL-RL version."""
+import os
+import os.path as osp
+import sys
+work_root = osp.join(osp.dirname(__file__), "../..")
+os.chdir(work_root)
+
+source_root = osp.join(work_root, "source/unitree_rl_lab")
+if source_root not in sys.path:
+    sys.path.insert(0, source_root)
 
 import importlib.metadata as metadata
 import platform
