@@ -34,3 +34,7 @@ class BasePPORunnerCfg(RslRlOnPolicyRunnerCfg):
         desired_kl=0.01,
         max_grad_norm=1.0,
     )
+
+    def __post_init__(self):
+        super().__post_init__()
+        self.policy.layer_norm = True

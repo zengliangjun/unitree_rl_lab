@@ -296,9 +296,10 @@ class RewardsCfg:
     flat_orientation_l2 = RewTerm(func=mdp.flat_orientation_l2, weight=-5.0)
     base_height = RewTerm(func=mdp.base_height_l2, weight=-10, params={"target_height": 0.78})
 
+    '''
     shoulder_gait = RewTerm(
         func=mdp.shoulder_gait_penalty,
-        weight= - 0.1,
+        weight= - 0.5,
         params={
             "period": 0.8,
             "offset": [0.0, 0.5],
@@ -308,6 +309,21 @@ class RewardsCfg:
             "hip_cfg": SceneEntityCfg("robot", joint_names=["left_hip_pitch_joint", "right_hip_pitch_joint"]),
         },
     )
+    '''
+
+    shoulder_gait = RewTerm(
+        func=mdp.penalty_shoulder_gait_signwithlinevel,
+        weight= - 0.25,
+        params={
+            "period": 0.8,
+            "offset": [0.0, 0.5],
+            "swing_range": 0.25,
+            "cent_pos": 0.15,
+            "command_name": "base_velocity",
+            "asset_cfg": SceneEntityCfg("robot", joint_names=["left_shoulder_pitch_joint", "right_shoulder_pitch_joint"]),
+        },
+    )
+
     # -- feet
     gait = RewTerm(
         func=mdp.feet_gait,
