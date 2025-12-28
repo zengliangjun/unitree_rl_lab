@@ -73,18 +73,50 @@ def penalty_shoulder_gait_signwithlinevel(
     for offset_ in offset:
         phase = (global_phase + offset_) % 1.0
         phases.append(phase)
-    phase = torch.cat(phases, dim=-1) * np.pi   # n * 2
+    phase = torch.cat(phases, dim=-1) * np.pi * 2
 
     swing_sign = torch.sign(env.command_manager.get_command(command_name)[:, :1])
     swing_target = torch.cos(phase) * swing_range * swing_sign + cent_pos  # n * 2
 
     cmd_norm = torch.norm(env.command_manager.get_command(command_name)[:, :2], dim=1)
-    is_stand = cmd_norm > 0.1
+    is_stand = cmd_norm < 0.1
     #
     asset: Articulation = env.scene[asset_cfg.name]
 
     swing_target[is_stand, :] = asset.data.default_joint_pos[:, asset_cfg.joint_ids][is_stand, :]
     #
     pos_error = asset.data.joint_pos[:, asset_cfg.joint_ids] - swing_target
+    penalty_error = torch.sum(torch.square(pos_error), dim = -1)
+    return penalty_error
+
+def penalty_knee(
+    env: ManagerBasedRLEnv,
+    period: float,
+    offset: list[float],
+    asset_cfg: SceneEntityCfg,
+    threshold: float = 0.5,
+    command_name: str = "base_velocity"
+) -> torch.Tensor:
+
+    global_phase = ((env.episode_length_buf * env.step_dt) % period / period).unsqueeze(1)
+    phases = []
+    for offset_ in offset:
+        phase = (global_phase + offset_) % 1.0
+        phases.append(phase)
+    phase = torch.cat(phases, dim=-1)
+
+    cmd_norm = torch.norm(env.command_manager.get_command(command_name), dim=1)
+    is_stand = cmd_norm < 0.1
+
+    # stand_phase = phase < threshold
+    swing_phase = phase > threshold
+    #
+    asset: Articulation = env.scene[asset_cfg.name]
+    pos_error = asset.data.joint_pos[:, asset_cfg.joint_ids]
+
+    pos_error[swing_phase] = 0
+    pos_error[is_stand] = (asset.data.joint_pos[:, asset_cfg.joint_ids] - asset.data.default_joint_pos[:, asset_cfg.joint_ids])[is_stand]
+    #
+
     penalty_error = torch.sum(torch.square(pos_error), dim = -1)
     return penalty_error

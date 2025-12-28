@@ -171,7 +171,7 @@ class CommandsCfg:
             lin_vel_x=(-0.1, 0.1), lin_vel_y=(-0.1, 0.1), ang_vel_z=(-0.1, 0.1)
         ),
         limit_ranges=mdp.UniformLevelVelocityCommandCfg.Ranges(
-            lin_vel_x=(-0.5, 1.0), lin_vel_y=(-0.3, 0.3), ang_vel_z=(-0.2, 0.2)
+            lin_vel_x=(-0.5, 1.0), lin_vel_y=(-0.6, 0.6), ang_vel_z=(-0.6, 0.6)
         ),
     )
 
@@ -317,10 +317,21 @@ class RewardsCfg:
         params={
             "period": 0.8,
             "offset": [0.0, 0.5],
-            "swing_range": 0.25,
+            "swing_range": 0.3,
             "cent_pos": 0.15,
             "command_name": "base_velocity",
             "asset_cfg": SceneEntityCfg("robot", joint_names=["left_shoulder_pitch_joint", "right_shoulder_pitch_joint"]),
+        },
+    )
+    penalty_knee = RewTerm(
+        func=mdp.penalty_knee,
+        weight= - 0.25,
+        params={
+            "period": 0.8,
+            "offset": [0.0, 0.5],
+            "threshold": 0.55,
+            "command_name": "base_velocity",
+            "asset_cfg": SceneEntityCfg("robot", joint_names=[".*_knee_joint"]),
         },
     )
 
