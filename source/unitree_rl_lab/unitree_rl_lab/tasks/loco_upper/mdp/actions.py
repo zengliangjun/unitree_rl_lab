@@ -110,6 +110,6 @@ class MotionActions(ActionTerm):
         self._asset.set_joint_position_target(self.processed_actions, joint_ids=self._joint_ids)
         self.current_idx += 1
 
-        reset_flags = self.motions_dof_pos >= (self.motions_dof_pos.shape[0] -1)
+        reset_flags = self.current_idx >= (self.motions_dof_pos.shape[0] -1)
         if torch.sum(reset_flags) > 0:
             self.current_idx[reset_flags] = 0

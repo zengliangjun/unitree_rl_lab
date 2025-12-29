@@ -214,7 +214,7 @@ class ActionsCfg:
             "right_shoulder_yaw_joint",
             "right_elbow_joint",
             "right_wrist_roll_joint"],
-        motions_dir="/workspace/PROJECTS/MOTIONS/data/AMASS/g1_23dof_50fps_pos_only/"
+        motions_dir="motion_data/g1_23dof_50fps_pos_only/"
     )
 
 
@@ -294,33 +294,6 @@ class RewardsCfg:
     dof_pos_limits = RewTerm(func=mdp.joint_pos_limits, weight=-5.0)
     energy = RewTerm(func=mdp.energy, weight=-2e-5)
 
-    joint_deviation_arms = RewTerm(
-        func=mdp.joint_deviation_l1,
-        weight=-0.1,
-        params={
-            "asset_cfg": SceneEntityCfg(
-                "robot",
-                joint_names=[
-                    ".*_shoulder_roll_joint",
-                    ".*_shoulder_yaw_joint",
-                    ".*_elbow_joint",
-                    ".*_wrist_.*",
-                ],
-            )
-        },
-    )
-    joint_deviation_waists = RewTerm(
-        func=mdp.joint_deviation_l1,
-        weight=-1,
-        params={
-            "asset_cfg": SceneEntityCfg(
-                "robot",
-                joint_names=[
-                    "waist.*",
-                ],
-            )
-        },
-    )
     joint_deviation_legs = RewTerm(
         func=mdp.joint_deviation_l1,
         weight=-1.0,
@@ -331,33 +304,6 @@ class RewardsCfg:
     flat_orientation_l2 = RewTerm(func=mdp.flat_orientation_l2, weight=-5.0)
     base_height = RewTerm(func=mdp.base_height_l2, weight=-10, params={"target_height": 0.78})
 
-    '''
-    shoulder_gait = RewTerm(
-        func=mdp.shoulder_gait_penalty,
-        weight= - 0.5,
-        params={
-            "period": 0.8,
-            "offset": [0.0, 0.5],
-            "swing_range": 0.3,
-            "command_name": "base_velocity",
-            "shoulder_cfg": SceneEntityCfg("robot", joint_names=["left_shoulder_pitch_joint", "right_shoulder_pitch_joint"]),
-            "hip_cfg": SceneEntityCfg("robot", joint_names=["left_hip_pitch_joint", "right_hip_pitch_joint"]),
-        },
-    )
-    '''
-
-    shoulder_gait = RewTerm(
-        func=mdp.penalty_shoulder_gait_signwithlinevel,
-        weight= - 0.25,
-        params={
-            "period": 0.8,
-            "offset": [0.0, 0.5],
-            "swing_range": 0.3,
-            "cent_pos": 0.15,
-            "command_name": "base_velocity",
-            "asset_cfg": SceneEntityCfg("robot", joint_names=["left_shoulder_pitch_joint", "right_shoulder_pitch_joint"]),
-        },
-    )
     penalty_knee = RewTerm(
         func=mdp.penalty_knee,
         weight= - 0.25,
