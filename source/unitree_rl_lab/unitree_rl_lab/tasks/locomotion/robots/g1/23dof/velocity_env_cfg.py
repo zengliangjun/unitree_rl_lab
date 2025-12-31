@@ -20,6 +20,9 @@ from isaaclab.utils.noise import AdditiveUniformNoiseCfg as Unoise
 
 from unitree_rl_lab.assets.robots.unitree import UNITREE_G1_23DOF_CFG as ROBOT_CFG
 from unitree_rl_lab.tasks.locomotion import mdp
+from unitree_rl_lab.tasks.locomotion.mdp import commands_ext_cfg
+from isaaclab.envs.mdp import UniformVelocityCommandCfg
+
 
 COBBLESTONE_ROAD_CFG = terrain_gen.TerrainGeneratorCfg(
     size=(8.0, 8.0),
@@ -159,18 +162,22 @@ class EventCfg:
 @configclass
 class CommandsCfg:
     """Command specifications for the MDP."""
-
-    base_velocity = mdp.UniformLevelVelocityCommandCfg(
+    base_velocity = commands_ext_cfg.CommandExtCfg(
         asset_name="robot",
         resampling_time_range=(10.0, 10.0),
-        rel_standing_envs=0.02,
+
+        rel_standing_envs=0.1,
+        rel_walking_envs= 0.23,
+        rel_spining_envs= 0.23,
+        rel_walking_spining_envs= 0.44,
+
         rel_heading_envs=1.0,
         heading_command=False,
         debug_vis=True,
-        ranges=mdp.UniformLevelVelocityCommandCfg.Ranges(
+        ranges=UniformVelocityCommandCfg.Ranges(
             lin_vel_x=(-0.1, 0.1), lin_vel_y=(-0.1, 0.1), ang_vel_z=(-0.1, 0.1)
         ),
-        limit_ranges=mdp.UniformLevelVelocityCommandCfg.Ranges(
+        limit_ranges=UniformVelocityCommandCfg.Ranges(
             lin_vel_x=(-0.5, 1.0), lin_vel_y=(-0.6, 0.6), ang_vel_z=(-0.6, 0.6)
         ),
     )
@@ -261,7 +268,7 @@ class RewardsCfg:
 
     joint_deviation_arms = RewTerm(
         func=mdp.joint_deviation_l1,
-        weight=-0.1,
+        weight=-1,  #-0.1,
         params={
             "asset_cfg": SceneEntityCfg(
                 "robot",
@@ -291,6 +298,11 @@ class RewardsCfg:
         weight=-1.0,
         params={"asset_cfg": SceneEntityCfg("robot", joint_names=[".*_hip_roll_joint", ".*_hip_yaw_joint"])},
     )
+    stand_deviation = RewTerm(
+        func=mdp.stand_deviation_l1,
+        weight=-10.0,
+        params={"asset_cfg": SceneEntityCfg("robot")},
+    )
 
     # -- robot
     flat_orientation_l2 = RewTerm(func=mdp.flat_orientation_l2, weight=-5.0)
@@ -317,7 +329,7 @@ class RewardsCfg:
         params={
             "period": 0.8,
             "offset": [0.0, 0.5],
-            "swing_range": 0.3,
+            "swing_range": 0.15,
             "cent_pos": 0.15,
             "command_name": "base_velocity",
             "asset_cfg": SceneEntityCfg("robot", joint_names=["left_shoulder_pitch_joint", "right_shoulder_pitch_joint"]),
