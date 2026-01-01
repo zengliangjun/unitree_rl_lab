@@ -300,7 +300,7 @@ class RewardsCfg:
     )
     stand_deviation = RewTerm(
         func=mdp.stand_deviation_l1,
-        weight=-10.0,
+        weight=-1.0,
         params={"asset_cfg": SceneEntityCfg("robot")},
     )
 
@@ -401,9 +401,18 @@ class TerminationsCfg:
 @configclass
 class CurriculumCfg:
     """Curriculum terms for the MDP."""
-
     terrain_levels = CurrTerm(func=mdp.terrain_levels_vel)
     lin_vel_cmd_levels = CurrTerm(mdp.lin_vel_cmd_levels)
+    ang_vel_cmd_levels = CurrTerm(mdp.ang_vel_cmd_levels)
+    stand_deviation_weight = CurrTerm(mdp.reward_weight_levels,
+                    params={
+                        "reward_term_name": "stand_deviation",
+                        "min_weight": -0.1,
+                        "max_weight": -3.0,
+                        "upper_threshold_length": 0.7,
+                        "lower_threshold_length": 0.3,
+                        "degree": 1e-5}
+    )
 
 
 @configclass

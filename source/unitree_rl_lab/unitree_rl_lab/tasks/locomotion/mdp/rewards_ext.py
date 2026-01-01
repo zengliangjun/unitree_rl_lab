@@ -121,10 +121,17 @@ def penalty_knee(
     penalty_error = torch.sum(torch.square(pos_error), dim = -1)
     return penalty_error
 
-def stand_deviation_l1(env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")) -> torch.Tensor:
+def stand_deviation_l1(env: ManagerBasedRLEnv,
+                       command_name: str = "base_velocity",
+                       asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")) -> torch.Tensor:
+
     """Penalize joint positions that deviate from the default one."""
     # extract the used quantities (to enable type-hinting)
     asset: Articulation = env.scene[asset_cfg.name]
     # compute out of limits constraints
-    angle = asset.data.joint_pos - asset.data.default_joint_pos
-    return torch.sum(torch.abs(angle), dim=1)
+    pos_error = asset.data.joint_pos - asset.data.default_joint_pos
+
+    cmd_norm = torch.norm(env.command_manager.get_command(command_name), dim=1)
+    is_walking = cmd_norm > 0.1
+    pos_error[is_walking, :] = 0.0
+    return torch.sum(torch.abs(pos_error), dim=1)

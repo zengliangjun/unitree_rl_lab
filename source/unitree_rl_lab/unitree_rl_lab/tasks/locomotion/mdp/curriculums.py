@@ -59,3 +59,25 @@ def ang_vel_cmd_levels(
             ).tolist()
 
     return torch.tensor(ranges.ang_vel_z[1], device=env.device)
+
+def reward_weight_levels(
+    env: ManagerBasedRLEnv,
+    env_ids: Sequence[int],
+    reward_term_name: str = "stand_deviation",
+    min_weight: float = -0.1,
+    max_weight: float = -3,
+    upper_threshold_length: float = 0.7,
+    lower_threshold_length: float = 0.3,
+    degree: float = 1e-5,
+) -> torch.Tensor:
+
+    reward_term = env.reward_manager.get_term_cfg(reward_term_name)
+    episode_length = torch.mean(env.episode_length_buf[env_ids] / env.max_episode_length).item()
+
+    if episode_length > upper_threshold_length:
+        reward_term.weight = max(reward_term.weight * (1 + degree), max_weight)
+
+    elif episode_length < lower_threshold_length:
+        reward_term.weight = min(reward_term.weight * (1 - degree), min_weight)
+
+    return torch.tensor(- reward_term.weight, device=env.device)
