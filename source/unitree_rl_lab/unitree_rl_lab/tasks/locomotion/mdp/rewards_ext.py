@@ -112,7 +112,7 @@ def penalty_knee(
     swing_phase = phase > threshold
     #
     asset: Articulation = env.scene[asset_cfg.name]
-    pos_error = asset.data.joint_pos[:, asset_cfg.joint_ids]
+    pos_error = (asset.data.joint_pos[:, asset_cfg.joint_ids]).clone()
 
     pos_error[swing_phase] = 0
     pos_error[is_stand] = (asset.data.joint_pos[:, asset_cfg.joint_ids] - asset.data.default_joint_pos[:, asset_cfg.joint_ids])[is_stand]
