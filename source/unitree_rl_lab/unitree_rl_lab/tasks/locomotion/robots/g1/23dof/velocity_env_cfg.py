@@ -388,6 +388,51 @@ class RewardsCfg:
         },
     )
 
+    penalty_cam = RewTerm(
+        func=mdp.CAM,
+        weight=-1,
+        params={
+            "asset_cfg": SceneEntityCfg("robot"),
+            "left_leg_names": [
+                        'left_hip_pitch_link',
+                        'left_hip_roll_link',
+                        'left_hip_yaw_link',
+                        'left_knee_link',
+                        'left_ankle_pitch_link',
+                        'left_ankle_roll_link'
+                    ],
+            "right_leg_names": [
+                        'right_hip_pitch_link',
+                        'right_hip_roll_link',
+                        'right_hip_yaw_link',
+                        'right_knee_link',
+                        'right_ankle_pitch_link',
+                        'right_ankle_roll_link'
+                    ],
+            "left_arm_names": [
+                        'left_shoulder_pitch_link',
+                        'left_shoulder_roll_link',
+                        'left_shoulder_yaw_link',
+                        'left_elbow_link',
+                        'left_wrist_roll_rubber_hand',
+                    ],
+            "right_arm_names": [
+                        'right_shoulder_pitch_link',
+                        'right_shoulder_roll_link',
+                        'right_shoulder_yaw_link',
+                        'right_elbow_link',
+                        'right_wrist_roll_rubber_hand',
+                    ],
+            "body_names": [
+                        'pelvis',
+                        'torso_link',
+                    ],
+        },
+    )
+
+    def __post_init__(self):
+        self.penalty_cam = None
+
 
 @configclass
 class TerminationsCfg:
