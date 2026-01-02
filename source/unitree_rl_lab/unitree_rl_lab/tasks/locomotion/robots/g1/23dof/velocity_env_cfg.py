@@ -178,7 +178,7 @@ class CommandsCfg:
             lin_vel_x=(-0.1, 0.1), lin_vel_y=(-0.1, 0.1), ang_vel_z=(-0.1, 0.1)
         ),
         limit_ranges=UniformVelocityCommandCfg.Ranges(
-            lin_vel_x=(-0.5, 1.0), lin_vel_y=(-0.6, 0.6), ang_vel_z=(-0.6, 0.6)
+            lin_vel_x=(-0.5, 1.0), lin_vel_y=(-0.6, 0.6), ang_vel_z=(-0.8, 0.8)
         ),
     )
 
@@ -252,7 +252,7 @@ class RewardsCfg:
         params={"command_name": "base_velocity", "std": math.sqrt(0.25)},
     )
     track_ang_vel_z = RewTerm(
-        func=mdp.track_ang_vel_z_exp, weight=0.5, params={"command_name": "base_velocity", "std": math.sqrt(0.25)}
+        func=mdp.track_ang_vel_z_exp, weight=4, params={"command_name": "base_velocity", "std": math.sqrt(0.25)}
     )
 
     alive = RewTerm(func=mdp.is_alive, weight=0.15)
@@ -300,7 +300,7 @@ class RewardsCfg:
     )
     stand_deviation = RewTerm(
         func=mdp.stand_deviation_l1,
-        weight=-1.0,
+        weight=-0.3,
         params={"asset_cfg": SceneEntityCfg("robot")},
     )
 
@@ -325,19 +325,19 @@ class RewardsCfg:
 
     shoulder_gait = RewTerm(
         func=mdp.penalty_shoulder_gait_signwithlinevel,
-        weight= - 0.25,
+        weight= - 0.15,
         params={
             "period": 0.8,
             "offset": [0.0, 0.5],
             "swing_range": 0.15,
-            "cent_pos": 0.15,
+            "cent_pos": 0.1,
             "command_name": "base_velocity",
             "asset_cfg": SceneEntityCfg("robot", joint_names=["left_shoulder_pitch_joint", "right_shoulder_pitch_joint"]),
         },
     )
     penalty_knee = RewTerm(
         func=mdp.penalty_knee,
-        weight= - 0.25,
+        weight= - 0.15,
         params={
             "period": 0.8,
             "offset": [0.0, 0.5],
@@ -388,50 +388,8 @@ class RewardsCfg:
         },
     )
 
-    penalty_cam = RewTerm(
-        func=mdp.CAM,
-        weight=-1,
-        params={
-            "asset_cfg": SceneEntityCfg("robot"),
-            "left_leg_names": [
-                        'left_hip_pitch_link',
-                        'left_hip_roll_link',
-                        'left_hip_yaw_link',
-                        'left_knee_link',
-                        'left_ankle_pitch_link',
-                        'left_ankle_roll_link'
-                    ],
-            "right_leg_names": [
-                        'right_hip_pitch_link',
-                        'right_hip_roll_link',
-                        'right_hip_yaw_link',
-                        'right_knee_link',
-                        'right_ankle_pitch_link',
-                        'right_ankle_roll_link'
-                    ],
-            "left_arm_names": [
-                        'left_shoulder_pitch_link',
-                        'left_shoulder_roll_link',
-                        'left_shoulder_yaw_link',
-                        'left_elbow_link',
-                        'left_wrist_roll_rubber_hand',
-                    ],
-            "right_arm_names": [
-                        'right_shoulder_pitch_link',
-                        'right_shoulder_roll_link',
-                        'right_shoulder_yaw_link',
-                        'right_elbow_link',
-                        'right_wrist_roll_rubber_hand',
-                    ],
-            "body_names": [
-                        'pelvis',
-                        'torso_link',
-                    ],
-        },
-    )
-
     def __post_init__(self):
-        self.penalty_cam = None
+        pass
 
 
 @configclass
@@ -448,12 +406,12 @@ class CurriculumCfg:
     """Curriculum terms for the MDP."""
     terrain_levels = CurrTerm(func=mdp.terrain_levels_vel)
     lin_vel_cmd_levels = CurrTerm(mdp.lin_vel_cmd_levels)
-    ang_vel_cmd_levels = CurrTerm(mdp.ang_vel_cmd_levels)
+    # ang_vel_cmd_levels = CurrTerm(mdp.ang_vel_cmd_levels)
     stand_deviation_weight = CurrTerm(mdp.reward_weight_levels,
                     params={
                         "reward_term_name": "stand_deviation",
                         "min_weight": -0.1,
-                        "max_weight": -3.0,
+                        "max_weight": -0.5,
                         "upper_threshold_length": 0.7,
                         "lower_threshold_length": 0.3,
                         "degree": 1e-5}
@@ -506,7 +464,9 @@ class RobotEnvCfg(ManagerBasedRLEnvCfg):
 class RobotPlayEnvCfg(RobotEnvCfg):
     def __post_init__(self):
         super().__post_init__()
+        self.episode_length_s = 60.0
         self.scene.num_envs = 32
-        self.scene.terrain.terrain_generator.num_rows = 2
-        self.scene.terrain.terrain_generator.num_cols = 10
+        self.scene.terrain.terrain_generator.num_rows = 4
+        self.scene.terrain.terrain_generator.num_cols = 4
         self.commands.base_velocity.ranges = self.commands.base_velocity.limit_ranges
+        self.curriculum = None

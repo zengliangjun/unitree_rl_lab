@@ -6,4 +6,4 @@ from .curriculums import *  # noqa: F401, F403
 from .observations import *  # noqa: F401, F403
 from .rewards import *  # noqa: F401, F403
 from .rewards_ext import *  # noqa: F401, F403
-from .rewards_com import *  # noqa: F401, F403
+from .rewards_cam import *  # noqa: F401, F403

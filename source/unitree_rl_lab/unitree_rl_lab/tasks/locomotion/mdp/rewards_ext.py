@@ -75,11 +75,17 @@ def penalty_shoulder_gait_signwithlinevel(
         phases.append(phase)
     phase = torch.cat(phases, dim=-1) * np.pi * 2
 
-    swing_sign = torch.sign(env.command_manager.get_command(command_name)[:, :1])
-    swing_target = torch.cos(phase) * swing_range * swing_sign + cent_pos  # n * 2
+    cmd = env.command_manager.get_command(command_name)
 
-    cmd_norm = torch.norm(env.command_manager.get_command(command_name)[:, :2], dim=1)
-    is_stand = cmd_norm < 0.1
+    swing_sign = torch.sign(cmd[:, :1])
+
+    cmd_norm = torch.norm(cmd, dim=1, keepdim=True)
+    scale = torch.abs(cmd[:, :1]) / (cmd_norm + 1e-6)
+
+    ###
+    swing_target = torch.cos(phase) * scale * swing_range * swing_sign + cent_pos  # n * 2
+
+    is_stand = cmd_norm[:, 0] < 0.1
     #
     asset: Articulation = env.scene[asset_cfg.name]
 
@@ -114,7 +120,7 @@ def penalty_knee(
     asset: Articulation = env.scene[asset_cfg.name]
     pos_error = (asset.data.joint_pos[:, asset_cfg.joint_ids]).clone()
 
-    pos_error[swing_phase] = 0
+    pos_error[swing_phase] = (asset.data.joint_pos[:, asset_cfg.joint_ids] - asset.data.default_joint_pos[:, asset_cfg.joint_ids] * 1.5)[swing_phase]
     pos_error[is_stand] = (asset.data.joint_pos[:, asset_cfg.joint_ids] - asset.data.default_joint_pos[:, asset_cfg.joint_ids])[is_stand]
     #
 
