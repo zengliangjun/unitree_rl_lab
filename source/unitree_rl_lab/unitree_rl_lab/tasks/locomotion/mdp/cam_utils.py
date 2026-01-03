@@ -2,6 +2,7 @@
 from __future__ import annotations
 import torch
 import isaaclab.utils.math as math_utils
+from isaaclab.assets import Articulation
 
 from functools import singledispatch
 import numpy as np
@@ -60,8 +61,7 @@ def adjoint_matrix_twist(R: torch.Tensor, p_w: torch.Tensor) -> torch.Tensor:
     lower = torch.cat([px @ R, R], dim=-1)
     return torch.cat([upper, lower], dim=-2)  # (B,6,6)
 
-
-def compute_com_mass_matrix(asset, env) -> torch.Tensor:
+def compute_com_mass_matrix_baseframe(asset: Articulation, env) -> torch.Tensor:
     """
     Build CoM mass matrix in CoM frame aligned with world.
     Returns: (B, 6+ndof, 6+ndof)
@@ -70,17 +70,59 @@ def compute_com_mass_matrix(asset, env) -> torch.Tensor:
     ndof = asset.num_joints
 
     M = asset.root_physx_view.get_generalized_mass_matrices()  # (B, 6+ndof, 6+ndof)
-    com_pos_w = asset.data.root_com_pos_w  # (B,3)
+    # com_pos_w = asset.data.root_com_pos_w  # (B,3)
+    com_pos_b = math_utils.quat_apply_inverse(asset.data.root_quat_w, asset.data.root_com_pos_w)  # (B,3)
 
     # world-aligned CoM frame: rotate base->world alignment using root quat
-    R = math_utils.matrix_from_quat(math_utils.quat_inv(asset.data.root_quat_w))  # (B,3,3)
-    Ad = adjoint_matrix_twist(R, com_pos_w)  # (B,6,6)
+    #R = math_utils.matrix_from_quat(math_utils.quat_inv(asset.data.root_quat_w))  # (B,3,3)
+    # Ad = adjoint_matrix_twist(R, com_pos_w)  # (B,6,6)
+    R = torch.eye(3, device=env.device).unsqueeze(0).expand(B, 3, 3)  # (B,3,3)
+    Ad = adjoint_matrix_twist(R, com_pos_b)  # (B,
+
 
     T = torch.zeros(B, 6 + ndof, 6 + ndof, device=env.device)
     T[:, :6, :6] = Ad
     T[:, 6:, 6:] = torch.eye(ndof, device=env.device).expand(B, ndof, ndof)
 
     # Transform (note: consistent with your original left-multiply; keep it stable)
+    M_com = T.transpose(1, 2) @ M
+    return M_com
+
+def compute_com_mass_matrix_world_aligned(asset, env) -> torch.Tensor:
+    """
+    Centroidal Momentum Matrix (world-aligned CoM frame).
+
+    Output momentum:
+      - origin: CoM
+      - axes: world frame
+
+    Returns:
+        M_com: (B, 6+ndof, 6+ndof)
+    """
+    B = env.num_envs
+    ndof = asset.num_joints
+    device = env.device
+
+    # --- generalized mass matrix (base-frame velocities) ---
+    M = asset.root_physx_view.get_generalized_mass_matrices()
+    # qdot = [ω_b, v_b, q̇_j] all expressed in base frame
+
+    # --- CoM position in world ---
+    com_pos_w = asset.data.root_com_pos_w  # (B,3)
+
+    # --- rotation: base → world ---
+    # root_quat_w maps base → world
+    R_bw = math_utils.matrix_from_quat(asset.data.root_quat_w)  # (B,3,3)
+
+    # --- adjoint: move origin to CoM AND rotate to world ---
+    Ad = adjoint_matrix_twist(R_bw, com_pos_w)  # (B,6,6)
+
+    # --- block transform ---
+    T = torch.zeros(B, 6 + ndof, 6 + ndof, device=device)
+    T[:, :6, :6] = Ad
+    T[:, 6:, 6:] = torch.eye(ndof, device=device).expand(B, ndof, ndof)
+
+    # --- centroidal momentum mapping ---
     M_com = T.transpose(1, 2) @ M
     return M_com
 
