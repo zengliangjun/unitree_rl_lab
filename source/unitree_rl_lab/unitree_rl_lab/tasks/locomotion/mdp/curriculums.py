@@ -11,14 +11,19 @@ if TYPE_CHECKING:
 def lin_vel_cmd_levels(
     env: ManagerBasedRLEnv,
     env_ids: Sequence[int],
+    group_name: str = None,
     reward_term_name: str = "track_lin_vel_xy",
 ) -> torch.Tensor:
     command_term = env.command_manager.get_term("base_velocity")
     ranges = command_term.cfg.ranges
     limit_ranges = command_term.cfg.limit_ranges
 
-    reward_term = env.reward_manager.get_term_cfg(reward_term_name)
-    reward = torch.mean(env.reward_manager._episode_sums[reward_term_name][env_ids]) / env.max_episode_length_s
+    if group_name is None:
+        reward_term = env.reward_manager.get_term_cfg(reward_term_name)
+        reward = torch.mean(env.reward_manager._episode_sums[reward_term_name][env_ids]) / env.max_episode_length_s
+    else:
+        reward_term = env.reward_manager.get_term_cfg(group_name = group_name, term_name = reward_term_name)
+        reward = torch.mean(env.reward_manager._episode_sums[group_name][reward_term_name][env_ids]) / env.max_episode_length_s
 
     if env.common_step_counter % env.max_episode_length == 0:
         if reward > reward_term.weight * 0.8:
@@ -40,14 +45,20 @@ def lin_vel_cmd_levels(
 def ang_vel_cmd_levels(
     env: ManagerBasedRLEnv,
     env_ids: Sequence[int],
+    group_name: str = None,
     reward_term_name: str = "track_ang_vel_z",
 ) -> torch.Tensor:
     command_term = env.command_manager.get_term("base_velocity")
     ranges = command_term.cfg.ranges
     limit_ranges = command_term.cfg.limit_ranges
 
-    reward_term = env.reward_manager.get_term_cfg(reward_term_name)
-    reward = torch.mean(env.reward_manager._episode_sums[reward_term_name][env_ids]) / env.max_episode_length_s
+    if group_name is None:
+        reward_term = env.reward_manager.get_term_cfg(reward_term_name)
+        reward = torch.mean(env.reward_manager._episode_sums[reward_term_name][env_ids]) / env.max_episode_length_s
+
+    else:
+        reward_term = env.reward_manager.get_term_cfg(group_name = group_name, term_name = reward_term_name)
+        reward = torch.mean(env.reward_manager._episode_sums[group_name][reward_term_name][env_ids]) / env.max_episode_length_s
 
     if env.common_step_counter % env.max_episode_length == 0:
         if reward > reward_term.weight * 0.8:

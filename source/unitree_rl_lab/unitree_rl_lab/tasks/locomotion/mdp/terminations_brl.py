@@ -83,8 +83,8 @@ class IllegalContact(ManagerTermBase):
         # extract the used quantities (to enable type-hinting)
         contact_sensor: ContactSensor = env.scene[sensor_cfg.name]
         net_contact_forces = torch.norm(contact_sensor.data.net_forces_w, dim=-1)
-        upper_terminated = torch.any((net_contact_forces[self.upper_ids] > threshold), dim=1)
-        leg_terminated = torch.any((net_contact_forces[self.leg_ids] > threshold), dim=1)
+        upper_terminated = torch.norm(net_contact_forces[:, self.upper_ids], dim=-1) > threshold
+        leg_terminated = torch.norm(net_contact_forces[:, self.leg_ids], dim=-1) > threshold
 
         self.upper_terminated_buffer[...] = upper_terminated
         self.leg_terminated_buffer[...] = leg_terminated

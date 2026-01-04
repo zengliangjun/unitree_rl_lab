@@ -26,8 +26,15 @@ class UnitreeArticulationCfg(ArticulationCfg):
 
     soft_joint_pos_limit_factor = 0.9
 
+    legs_joint_names: list[str] = None
+    arms_joint_names: list[str] = None
 
-UNITREE_MODEL_DIR = MISSING
+import os
+import os.path as osp
+root = osp.abspath(os.getcwd())
+
+
+UNITREE_MODEL_DIR = f"{root}/assets/usd/"
 
 UNITREE_GO2_CFG = UnitreeArticulationCfg(
     spawn=sim_utils.UsdFileCfg(
@@ -381,6 +388,34 @@ UNITREE_G1_23DOF_CFG = UnitreeArticulationCfg(
         "right_elbow_joint",
         "right_wrist_roll_joint",
     ],
+    legs_joint_names=[
+        "left_hip_pitch_joint",
+        "left_hip_roll_joint",
+        "left_hip_yaw_joint",
+        "left_knee_joint",
+        "left_ankle_pitch_joint",
+        "left_ankle_roll_joint",
+        "right_hip_pitch_joint",
+        "right_hip_roll_joint",
+        "right_hip_yaw_joint",
+        "right_knee_joint",
+        "right_ankle_pitch_joint",
+        "right_ankle_roll_joint",
+        "waist_yaw_joint"
+    ],
+    arms_joint_names=[
+        "left_shoulder_pitch_joint",
+        "left_shoulder_roll_joint",
+        "left_shoulder_yaw_joint",
+        "left_elbow_joint",
+        "left_wrist_roll_joint",
+        "right_shoulder_pitch_joint",
+        "right_shoulder_roll_joint",
+        "right_shoulder_yaw_joint",
+        "right_elbow_joint",
+        "right_wrist_roll_joint",
+    ],
+
 )
 
 UNITREE_G1_29DOF_CFG = UnitreeArticulationCfg(

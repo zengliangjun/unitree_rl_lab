@@ -90,7 +90,7 @@ def orientation_reward(env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg):
     # Reward tracking upright orientation
     error = torch.norm(asset.data.projected_gravity_b[:, :2], dim=1)
     error = torch.exp(-torch.square(error / 0.2) / 0.25)
-    return torch.mean(error, dim=1)
+    return error
 
 def track_lin_vel_reward(
     env, std: float, command_name: str, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
@@ -110,8 +110,8 @@ def track_ang_vel_reward(
     """Reward tracking of angular velocity commands (z axis) in the gravity aligned robot frame using exponential kernel."""
     # extract the used quantities (to enable type-hinting)
     asset = env.scene[asset_cfg.name]
-    commands = env.command_manager.get_command(command_name)[:, :2]
-    error = commands[:, 2] - asset.data.root_ang_vel_b[:, 2]
+    commands = env.command_manager.get_command(command_name)[:, 2]
+    error = commands - asset.data.root_ang_vel_b[:, 2]
     error *= 1./(1. + torch.abs(commands))
     return torch.exp(-torch.square(error) / std**2)
 
