@@ -25,9 +25,9 @@ class UnitreeArticulationCfg(ArticulationCfg):
     joint_sdk_names: list[str] = None
 
     soft_joint_pos_limit_factor = 0.9
-
     legs_joint_names: list[str] = None
     arms_joint_names: list[str] = None
+
 
 import os
 import os.path as osp
@@ -415,7 +415,6 @@ UNITREE_G1_23DOF_CFG = UnitreeArticulationCfg(
         "right_elbow_joint",
         "right_wrist_roll_joint",
     ],
-
 )
 
 UNITREE_G1_29DOF_CFG = UnitreeArticulationCfg(
