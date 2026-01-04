@@ -21,18 +21,18 @@ def armCamTrackingReward(env: ManagerBasedRLEnv,
     cmd = env.command_manager.get_command(command_name)  # (B,3) = [vx,vy,wz]
     ndof = asset.num_joints
 
-    M_com = cam_utils.compute_com_mass_matrix(asset, env)
-    cmm = cam_utils.get_cmm(M_com)
+    M_com_w = cam_utils.compute_com_mass_matrix_world_aligned(asset, env)
+    cmm_w = cam_utils.get_cmm(M_com_w)
 
     qdot = cam_utils.get_generalized_qdot(asset)
-    h = cam_utils.compute_cam(cmm, qdot)          # (B,6)
-    h_ref = cam_utils.compute_cam_ref(cmm, cmd[:, :3], ndof, env.device)
+    h = cam_utils.compute_cam(cmm_w, qdot)          # (B,6)
+    h_ref = cam_utils.compute_cam_ref(cmm_w, cmd[:, :3], ndof, env.device)
 
     kz = h[:, 2]
     kz_hat = h_ref[:, 2]
 
     err = (kz_hat - kz) / (1.0 + torch.abs(kz_hat))
-    r = torch.exp(- torch.square(err) / sigma)
+    r = torch.exp(- torch.square(err * 2) / sigma)
     return r
 
 
@@ -54,7 +54,7 @@ class ArmCamDampingReward(ManagerTermBase):
                 asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")) -> torch.Tensor:
 
         asset: Articulation = env.scene[asset_cfg.name]
-        M_com = cam_utils.compute_com_mass_matrix(asset, env)
+        M_com = cam_utils.compute_com_mass_matrix_baseframe(asset, env)
         cmm = cam_utils.get_cmm(M_com)
 
         qdot = cam_utils.get_generalized_qdot(asset)
@@ -66,6 +66,6 @@ class ArmCamDampingReward(ManagerTermBase):
 
         # Eq.(9): -min(0, sum_{i=x,y} k_i * kdot_i) :contentReference[oaicite:11]{index=11}
         s = torch.sum(k_xy * kdot_xy, dim=-1)
-        r = -torch.minimum(torch.zeros_like(s), s)
+        r = -torch.clamp_min(torch.zeros_like(s), 0.0,)
         return r
 

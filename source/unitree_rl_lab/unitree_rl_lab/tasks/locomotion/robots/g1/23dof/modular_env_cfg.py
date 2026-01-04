@@ -181,14 +181,14 @@ class ObservationsCfg:
                             params={"asset_cfg": SceneEntityCfg("robot", joint_names=ROBOT_CFG.legs_joint_names)})
         legs_action = ObsTerm(func=mdp.last_action, params={"action_name": "leg"}, noise=Gnoise(std=0.1))
 
-        arms_pos = ObsTerm(func=mdp.joint_pos, scale=0.05, noise=Gnoise(std=0.05),
+        arms_pos = ObsTerm(func=mdp.joint_pos, noise=Gnoise(std=0.05),
                             params={"asset_cfg": SceneEntityCfg("robot", joint_names=ROBOT_CFG.arms_joint_names)})
-        arms_vel = ObsTerm(func=mdp.joint_vel, noise=Gnoise(std=1.0),
+        arms_vel = ObsTerm(func=mdp.joint_vel, scale=0.05, noise=Gnoise(std=1.0),
                             params={"asset_cfg": SceneEntityCfg("robot", joint_names=ROBOT_CFG.arms_joint_names)})
         arms_action = ObsTerm(func=mdp.last_action, params={"action_name": "arm"}, noise=Gnoise(std=0.1))
 
-        # CAM = ObsTerm(func=mdp.centroidal_angular_momentum_mixed, noise=Gnoise(std=0.1))
-        # CAM_des = ObsTerm(func=mdp.centroidal_angular_momentum_des_mixed)
+        CAM = ObsTerm(func=mdp.centroidal_angular_momentum_mixed, scale=0.02, noise=Gnoise(std=0.1))
+        CAM_des = ObsTerm(func=mdp.centroidal_angular_momentum_des_mixed)
 
         def __post_init__(self):
             self.history_length = 10
@@ -475,12 +475,12 @@ class RewardsCfg:
         )
 
         dCAM_xy = RewTerm(
-            func=mdp.dCAM_xy_penalty,
+            func=mdp.ArmCamDampingReward,
             weight=5e-2,
             params={"asset_cfg": SceneEntityCfg("robot")}
         )
         tracking_CAM_reward = RewTerm(
-            func=mdp.tracking_CAM_reward,
+            func=mdp.armCamTrackingReward,
             weight=3.0,
             params={"asset_cfg": SceneEntityCfg("robot"), "command_name": "base_velocity"}
         )
