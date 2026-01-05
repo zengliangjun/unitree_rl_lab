@@ -51,6 +51,9 @@ def apply_external_force_torque_disturbance(
     if env_ids is None:
         env_ids = torch.arange(env.scene.num_envs, device=asset.device)
 
+    if not isinstance(env_ids, torch.Tensor):
+        env_ids = torch.tensor(env_ids, device=asset.device)
+
     body_ids = asset_cfg.body_ids
 
     # resolve number of bodies

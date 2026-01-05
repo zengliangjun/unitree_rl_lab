@@ -135,7 +135,7 @@ def stand_deviation_l1(env: ManagerBasedRLEnv,
     # extract the used quantities (to enable type-hinting)
     asset: Articulation = env.scene[asset_cfg.name]
     # compute out of limits constraints
-    pos_error = asset.data.joint_pos - asset.data.default_joint_pos
+    pos_error = (asset.data.joint_pos - asset.data.default_joint_pos)[asset_cfg.joint_ids]
 
     cmd_norm = torch.norm(env.command_manager.get_command(command_name), dim=1)
     is_walking = cmd_norm > 0.1
