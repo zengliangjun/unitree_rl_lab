@@ -4,7 +4,7 @@ import torch
 from typing import TYPE_CHECKING
 
 from isaaclab.assets import Articulation
-from isaaclab.managers import SceneEntityCfg
+from isaaclab.managers import SceneEntityCfg, ManagerTermBase, RewardTermCfg
 
 if TYPE_CHECKING:
     from isaaclab.envs import ManagerBasedRLEnv
@@ -135,9 +135,33 @@ def stand_deviation_l1(env: ManagerBasedRLEnv,
     # extract the used quantities (to enable type-hinting)
     asset: Articulation = env.scene[asset_cfg.name]
     # compute out of limits constraints
-    pos_error = (asset.data.joint_pos - asset.data.default_joint_pos)[asset_cfg.joint_ids]
+    pos_error = (asset.data.joint_pos - asset.data.default_joint_pos)[:, asset_cfg.joint_ids]
 
     cmd_norm = torch.norm(env.command_manager.get_command(command_name), dim=1)
     is_walking = cmd_norm > 0.1
     pos_error[is_walking, :] = 0.0
     return torch.sum(torch.abs(pos_error), dim=1)
+
+class action_rate_l2_withname(ManagerTermBase):
+
+    def __init__(self, cfg: RewardTermCfg, env: ManagerBasedRLEnv):
+        super().__init__(cfg, env)
+        action_name = cfg.params.get("action_name", None)
+        assert action_name is not None, "action_name must be specified in the reward term config."
+
+        start_dim = 0
+        end_dim = 0
+        for name, dim in zip(env.action_manager.active_terms, env.action_manager.action_term_dim):
+            start_dim = end_dim
+            end_dim += dim
+            if name != action_name:
+                continue
+
+        self.start_dim = start_dim
+        self.end_dim = end_dim
+
+    def __call__(self, env: ManagerBasedRLEnv,
+                action_name: str) -> torch.Tensor:
+
+        error = torch.square(env.action_manager.action - env.action_manager.prev_action)[:, self.start_dim: self.end_dim]
+        return torch.sum(error, dim=1)

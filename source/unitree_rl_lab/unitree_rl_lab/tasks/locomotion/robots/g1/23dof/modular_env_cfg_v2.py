@@ -326,7 +326,7 @@ class EventsDeployCfg:
 
     # interval
     apply_external_force = EventTerm(
-        func=mdp.apply_external_force_torque_disturbance,
+        func=mdp.apply_external_force_torque,
         mode="interval",
         interval_range_s=(2.0, 4.0),
         params={"force_range": (-15.0, 15.0), "torque_range": (-1.5, 1.5)},
@@ -367,9 +367,9 @@ class LegRewardsCfg:
         params={"asset_cfg": SceneEntityCfg("robot", joint_names=ROBOT_CFG.legs_joint_names)}
     )
     action_rate = RewTerm(
-        func=mdp.action_rate_l2,
+        func=mdp.action_rate_l2_withname,
         weight=-0.05,
-        params={"asset_cfg": SceneEntityCfg("robot", joint_names=ROBOT_CFG.legs_joint_names)}
+        params={"action_name": "leg_joint_pos"}
     )
     dof_pos_limits = RewTerm(
         func=mdp.joint_pos_limits,
@@ -467,9 +467,9 @@ class ArmRewardsCfg:
         params={"asset_cfg": SceneEntityCfg("robot", joint_names=ROBOT_CFG.arms_joint_names)}
     )
     action_rate = RewTerm(
-        func=mdp.action_rate_l2,
+        func=mdp.action_rate_l2_withname,
         weight=-0.05,
-        params={"asset_cfg": SceneEntityCfg("robot", joint_names=ROBOT_CFG.arms_joint_names)}
+        params={"action_name": "arm_joint_pos"}
     )
     dof_pos_limits = RewTerm(
         func=mdp.joint_pos_limits,
@@ -526,7 +526,7 @@ class ArmRewardsCfg:
     )
     tracking_CAM_reward = RewTerm(
         func=mdp.armCamTrackingReward,
-        weight=0.1,
+        weight=1,
         params={"asset_cfg": SceneEntityCfg("robot"), "command_name": "base_velocity"}
     )
 
@@ -541,58 +541,9 @@ class RewardsCfg:
 
 @configclass
 class TerminationsCfg:
-
-    illegal_contact = DoneTerm(
-        func=mdp.IllegalContact,
-        params={
-            "asset_cfg": SceneEntityCfg("robot"),
-            "sensor_cfg": SceneEntityCfg("contact_forces"),
-            "threshold": 1.0,
-            "upper_names": [
-                'torso_link',
-                'left_shoulder_pitch_link',
-                'right_shoulder_pitch_link',
-                'left_shoulder_roll_link',
-                'right_shoulder_roll_link',
-                'left_shoulder_yaw_link',
-                'right_shoulder_yaw_link',
-                'left_elbow_link',
-                'right_elbow_link',
-                'left_wrist_roll_rubber_hand',
-                'right_wrist_roll_rubber_hand'
-            ],
-            "leg_names": [
-                'pelvis',
-                'left_hip_pitch_link',
-                'right_hip_pitch_link',
-                'left_hip_roll_link',
-                'right_hip_roll_link',
-                'left_hip_yaw_link',
-                'right_hip_yaw_link',
-                'left_knee_link',
-                'right_knee_link',
-                #'left_ankle_pitch_link',
-                #'right_ankle_pitch_link',
-                #'left_ankle_roll_link',
-                #'right_ankle_roll_link'
-            ]
-            },
-    )
-    base_termination = DoneTerm(
-        func=mdp.BaseTermination,
-        params={
-            "max_lin_vel": 15.0,
-            "max_ang_vel": 10.0,
-            "max_tilting": 0.8,
-            "asset_cfg": SceneEntityCfg("robot"),
-        },
-    )
-    base_height = DoneTerm(func=mdp.root_height_below_minimum, params={"minimum_height": 0.4})
-
     time_out = DoneTerm(func=mdp.time_out, time_out=True)
-
-    def __post_init__(self):
-        self.illegal_contact = None
+    base_height = DoneTerm(func=mdp.root_height_below_minimum, params={"minimum_height": 0.2})
+    bad_orientation = DoneTerm(func=mdp.bad_orientation, params={"limit_angle": 0.8})
 
 
 @configclass
