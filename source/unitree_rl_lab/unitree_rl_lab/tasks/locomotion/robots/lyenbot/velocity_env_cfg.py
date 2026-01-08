@@ -252,7 +252,7 @@ class RewardsCfg:
         params={"command_name": "base_velocity", "std": math.sqrt(0.25)},
     )
     track_ang_vel_z = RewTerm(
-        func=mdp.track_ang_vel_z_exp, weight=0.5, params={"command_name": "base_velocity", "std": math.sqrt(0.25)}
+        func=mdp.track_ang_vel_z_exp, weight=0.8, params={"command_name": "base_velocity", "std": math.sqrt(0.25)}
     )
 
     alive = RewTerm(func=mdp.is_alive, weight=0.15)
@@ -266,14 +266,27 @@ class RewardsCfg:
     dof_pos_limits = RewTerm(func=mdp.joint_pos_limits, weight=-5.0)
     energy = RewTerm(func=mdp.energy, weight=-2e-5)
 
-    joint_deviation_arms = RewTerm(
-        func=mdp.joint_deviation_l1,
-        weight=-0.1,
+    joint_deviation_pitch = RewTerm(
+        func=mdp.joint_deviation_l4,
+        weight=-0.25,
         params={
             "asset_cfg": SceneEntityCfg(
                 "robot",
                 joint_names=[
-                    ".*_shoulder_.*",
+                    ".*_shoulder_pitch_.*",
+                ],
+            ),
+            "std": 0.25
+        },
+    )
+    joint_deviation_arms = RewTerm(
+        func=mdp.joint_deviation_l1,
+        weight=-1,
+        params={
+            "asset_cfg": SceneEntityCfg(
+                "robot",
+                joint_names=[
+                    ".*_shoulder_roll_.*",
                     ".*_elbow_.*",
                 ],
             )

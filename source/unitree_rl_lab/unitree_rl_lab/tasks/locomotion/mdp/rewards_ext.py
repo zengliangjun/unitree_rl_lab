@@ -142,6 +142,23 @@ def stand_deviation_l1(env: ManagerBasedRLEnv,
     pos_error[is_walking, :] = 0.0
     return torch.sum(torch.abs(pos_error), dim=1)
 
+def joint_deviation_l4(env: ManagerBasedRLEnv,
+                       command_name: str = "base_velocity",
+                       asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
+                       std: float = 0.25) -> torch.Tensor:
+
+    """Penalize joint positions that deviate from the default one."""
+    # extract the used quantities (to enable type-hinting)
+    asset: Articulation = env.scene[asset_cfg.name]
+    # compute out of limits constraints
+    pos_error = (asset.data.joint_pos - asset.data.default_joint_pos)[:, asset_cfg.joint_ids] / std
+
+    cmd_norm = torch.norm(env.command_manager.get_command(command_name), dim=1)
+    is_stand = cmd_norm < 0.1
+    pos_error[is_stand, :] = 0.0
+
+    return torch.sum(torch.pow(pos_error, 4), dim=1)
+
 class action_rate_l2_withname(ManagerTermBase):
 
     def __init__(self, cfg: RewardTermCfg, env: ManagerBasedRLEnv):

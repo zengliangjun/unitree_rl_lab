@@ -8,10 +8,52 @@ from isaaclab.utils import configclass
 
 from . import unitree
 
+'''
+    spawn=sim_utils.UsdFileCfg(
+        usd_path=f"{unitree.UNITREE_MODEL_DIR}/lyenbot/lyenbot_20151206_collision.usd",
+        activate_contact_sensors=True,
+        rigid_props=sim_utils.RigidBodyPropertiesCfg(
+            disable_gravity=False,
+            retain_accelerations=False,
+            linear_damping=0.0,
+            angular_damping=0.0,
+            max_linear_velocity=1000.0,
+            max_angular_velocity=1000.0,
+            max_depenetration_velocity=1.0,
+        ),
+        articulation_props=sim_utils.ArticulationRootPropertiesCfg(
+            enabled_self_collisions=True,
+            solver_position_iteration_count=8,
+            solver_velocity_iteration_count=4,
+        ),
+    ),
+    spawn=sim_utils.UrdfFileCfg(
+        fix_base=False,
+        replace_cylinders_with_capsules=True,
+        asset_path=f"{unitree.UNITREE_MODEL_DIR}/lyenbot/lyenbot_20151206_collision.urdf",
+        activate_contact_sensors=True,
+        rigid_props=sim_utils.RigidBodyPropertiesCfg(
+            disable_gravity=False,
+            retain_accelerations=False,
+            linear_damping=0.0,
+            angular_damping=0.0,
+            max_linear_velocity=1000.0,
+            max_angular_velocity=1000.0,
+            max_depenetration_velocity=1.0,
+        ),
+        articulation_props=sim_utils.ArticulationRootPropertiesCfg(
+            enabled_self_collisions=True, solver_position_iteration_count=8, solver_velocity_iteration_count=4
+        ),
+        joint_drive=sim_utils.UrdfConverterCfg.JointDriveCfg(
+            gains=sim_utils.UrdfConverterCfg.JointDriveCfg.PDGainsCfg(stiffness=0, damping=0)
+        ),
+    ),
+
+'''
 
 LYENBOT_CFG = unitree.UnitreeArticulationCfg(
     spawn=sim_utils.UsdFileCfg(
-        usd_path=f"{unitree.UNITREE_MODEL_DIR}/lyenbot/lyenbot_20151206_collision.usd",
+        usd_path=f"{unitree.UNITREE_MODEL_DIR}/lyenbot/usd/lyenbot_20151206_collision.usd",
         activate_contact_sensors=True,
         rigid_props=sim_utils.RigidBodyPropertiesCfg(
             disable_gravity=False,
@@ -86,7 +128,12 @@ LYENBOT_CFG = unitree.UnitreeArticulationCfg(
                 ".*_shoulder_roll_joint": 18.84,
                 ".*_elbow_.*": 18.84,
             },
-            stiffness=14.250623098,
+            stiffness={
+                ".*_shoulder_.*": 14.250623098,
+                ".*_elbow_yaw_joint": 14.250623098,
+                ".*_elbow_pitch_joint": 14.250623098,
+                ".*_elbow_roll_joint": 7.625311549,
+            }, # 14.250623098,
             damping=0.907222843,
             armature=0.003609725,
         ),
@@ -97,8 +144,8 @@ LYENBOT_CFG = unitree.UnitreeArticulationCfg(
                 ".*ankle_roll.*": 33
             },
             velocity_limit_sim=16.22,
-            stiffness=28.501246196,
-            damping=1.814445687,
+            stiffness=14.250623098, # 28.501246196,
+            damping=0.907222843, # 1.814445687,
             armature=0.007219450,
         ),
     },
@@ -109,22 +156,22 @@ LYENBOT_CFG = unitree.UnitreeArticulationCfg(
         "left_knee_pitch_joint",
         "left_ankle_pitch_joint",
         "left_ankle_roll_joint",
+
         "right_hip_pitch_joint",
         "right_hip_roll_joint",
         "right_hip_yaw_joint",
         "right_knee_pitch_joint",
         "right_ankle_pitch_joint",
         "right_ankle_roll_joint",
+
         "waist_yaw_joint",
-        "",
-        "",
+
         "left_shoulder_pitch_joint",
         "left_shoulder_roll_joint",
         "left_elbow_yaw_joint",
         "left_elbow_pitch_joint",
         "left_elbow_roll_joint",
-        "",
-        "",
+
         "right_shoulder_pitch_joint",
         "right_shoulder_roll_joint",
         "right_elbow_yaw_joint",
