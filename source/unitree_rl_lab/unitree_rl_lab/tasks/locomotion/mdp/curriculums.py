@@ -74,6 +74,7 @@ def ang_vel_cmd_levels(
 def reward_weight_levels(
     env: ManagerBasedRLEnv,
     env_ids: Sequence[int],
+    group_name: str = None,
     reward_term_name: str = "stand_deviation",
     min_weight: float = -0.1,
     max_weight: float = -3,
@@ -85,10 +86,19 @@ def reward_weight_levels(
     reward_term = env.reward_manager.get_term_cfg(reward_term_name)
     episode_length = torch.mean(env.episode_length_buf[env_ids] / env.max_episode_length).item()
 
-    if episode_length > upper_threshold_length:
+    if group_name is None:
+        reward_term = env.reward_manager.get_term_cfg(reward_term_name)
+        reward = torch.mean(env.reward_manager._episode_sums[reward_term_name][env_ids]) / env.max_episode_length_s
+
+    else:
+        reward_term = env.reward_manager.get_term_cfg(group_name = group_name, term_name = reward_term_name)
+        reward = torch.mean(env.reward_manager._episode_sums[group_name][reward_term_name][env_ids]) / env.max_episode_length_s
+
+
+    if episode_length > upper_threshold_length and reward > reward_term.weight * 0.8:
         reward_term.weight = max(reward_term.weight * (1 + degree), max_weight)
 
-    elif episode_length < lower_threshold_length:
+    elif episode_length < lower_threshold_length or reward < reward_term.weight * 0.8:
         reward_term.weight = min(reward_term.weight * (1 - degree), min_weight)
 
     return torch.tensor(- reward_term.weight, device=env.device)
