@@ -46,6 +46,19 @@ def export_deploy_cfg(env: ManagerBasedRLEnv, log_dir):
         for item_name in ["lin_vel_x", "lin_vel_y", "ang_vel_z"]:
             ranges[item_name] = list(ranges[item_name])
         cfg["commands"]["base_velocity"]["ranges"] = ranges
+    elif hasattr(env.cfg.commands, "suqat_command"):  # some environments do not have base_velocity command
+        cfg["commands"]["suqat_command"] = {}
+        if hasattr(env.cfg.commands.suqat_command, "max_limit_ranges"):
+            ranges = env.cfg.commands.suqat_command.max_limit_ranges.to_dict()
+        else:
+            ranges = env.cfg.commands.suqat_command.ranges.to_dict()
+        for item_name in ["suqat_phase", "full_times"]:
+            ranges[item_name] = list(ranges[item_name])
+        cfg["commands"]["suqat_command"]["ranges"] = ranges
+
+        command = env.command_manager.get_term("suqat_command")
+        cfg["commands"]["suqat_command"]["cpos"] = command.cpos[0].item()
+        cfg["commands"]["suqat_command"]["rad"] = command.rad[0].item()
 
     # --- actions ---
     action_names = env.action_manager.active_terms
