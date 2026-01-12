@@ -21,7 +21,7 @@ struct ArticulationData
 
     // Joint positions of all joints.
     Eigen::VectorXf joint_pos;
-    
+
     // Default joint positions of all joints.
     Eigen::VectorXf default_joint_pos;
 
@@ -41,6 +41,16 @@ struct ArticulationData
     unitree::common::UnitreeJoystick* joystick = nullptr;
 
     isaaclab::MotionLoader* motion_loader = nullptr;
+
+    // for squat
+    int left_knee_id = 3;
+    int right_knee_id = 9;
+
+    float suqat_command_phase = 0;
+    float pos_phase = 0;
+    float phase_vel = 0;
+    float full_time = 0;
+
 };
 
 class Articulation

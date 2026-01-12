@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.12)
-project(g1_23dof_controller)
+project(lyenbot_ctrl)
 
 find_package(Boost REQUIRED COMPONENTS program_options)
 find_package(yaml-cpp REQUIRED)
@@ -26,4 +26,4 @@ file(GLOB_RECURSE ADD_SRC_LIST
 add_library(${PROJECT_NAME}_lib ${ADD_SRC_LIST})
 link_libraries(${PROJECT_NAME}_lib)
 
-add_executable(lyenbot_ctrl main.cpp)
+add_executable(${PROJECT_NAME} main.cpp)

@@ -7,10 +7,14 @@ FSM:
     Velocity:
       id: 3
       type: RLBase
+    Lyenbot_Squat:
+      id: 101
+      type: Squat
   Passive:
     transitions:
       FixStand: LT + up.on_pressed
       Velocity: RB + X.on_pressed
+      Lyenbot_Squat: RB + Y.on_pressed
     mode: [
       1,1,1,1,1,1,
       1,1,1,1,1,1,
@@ -29,6 +33,7 @@ FSM:
     transitions:
       Passive: LT + B.on_pressed
       Velocity: RB + X.on_pressed
+      Lyenbot_Squat: RB + Y.on_pressed
     kp: [
       40.179238471, 99.098427777, 40.179238471, 99.098427777, 14.3, 14.3, # 28.501246196, 28.501246196,
       40.179238471, 99.098427777, 40.179238471, 99.098427777, 14.3, 14.3, # 28.501246196, 28.501246196,
@@ -55,6 +60,14 @@ FSM:
     ]
   Velocity:
     transitions:
+      FixStand: LT + up.on_pressed
       Passive: LT + B.on_pressed
-    policy_dir: config/policy/UnitreeRL/2026-01-07_16-44-07
+      Lyenbot_Squat: RB + Y.on_pressed
+    policy_dir: config/policy/UnitreeRL/2026-01-09_14-37-09
+  Lyenbot_Squat:
+    transitions:
+      FixStand: LT + up.on_pressed
+      Passive: LT + B.on_pressed
+      Velocity: RB + X.on_pressed
+    policy_dir: config/policy/lyenbot_squat/2026-01-12_12-10-03
 

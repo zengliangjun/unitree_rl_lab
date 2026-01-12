@@ -9,8 +9,8 @@
 class FSMState : public BaseState
 {
 public:
-    FSMState(int state, std::string state_string) 
-    : BaseState(state, state_string) 
+    FSMState(int state, std::string state_string)
+    : BaseState(state, state_string)
     {
         spdlog::info("Initializing State_{} ...", state_string);
 
@@ -35,6 +35,9 @@ public:
                 unitree::common::dsl::Parser p(condition);
                 auto ast = p.Parse();
                 auto func = unitree::common::dsl::Compile(*ast);
+
+                spdlog::info(">>>>  target_fsm: {} condition: {} ...", target_fsm, condition);
+
                 registered_checks.emplace_back(
                     std::make_pair(
                         [func]()->bool{ return func(FSMState::lowstate->joystick); },

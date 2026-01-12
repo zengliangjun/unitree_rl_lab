@@ -22,7 +22,9 @@ inline ObsMap& observations_map() {
 #define REGISTER_OBSERVATION(name) \
     inline std::vector<float> name(ManagerBasedRLEnv* env, YAML::Node params); \
     inline struct name##_registrar { \
-        name##_registrar() { observations_map()[#name] = name; } \
+        name##_registrar() { observations_map()[#name] = name;  \
+                std::cout << " observations: " << #name << " >> " << name << std::endl; \
+        } \
     } name##_registrar_instance; \
     inline std::vector<float> name(ManagerBasedRLEnv* env, YAML::Node params)
 
@@ -78,7 +80,7 @@ public:
                     auto term_obs_scaled = term.get(h);
                     obs.insert(obs.end(), term_obs_scaled.begin(), term_obs_scaled.end());
                 }
-            }            
+            }
         }
         else
         {
@@ -141,7 +143,7 @@ protected:
             if(!term_yaml_cfg["clip"].IsNull()) {
                 term_cfg.clip = term_yaml_cfg["clip"].as<std::vector<float>>();
             }
-            term_cfg.func = observations_map()[term_name];   
+            term_cfg.func = observations_map()[term_name];
 
 
             auto obs = term_cfg.func(this->env, term_cfg.params);
