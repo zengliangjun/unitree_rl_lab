@@ -21,6 +21,8 @@ public:
         }
 
         env->robot->update();
+        _resample_init_compute();
+
         // Start policy thread
         policy_thread_running = true;
         policy_thread = std::thread([this]{

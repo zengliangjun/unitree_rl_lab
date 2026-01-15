@@ -45,7 +45,7 @@ State_Squat::State_Squat(int state_mode, std::string state_string)
     env->robot->data.left_knee_id = env->cfg["commands"]["suqat_command"]["left_knee_id"].as<int>(); // 3;
     env->robot->data.right_knee_id = env->cfg["commands"]["suqat_command"]["right_knee_id"].as<int>(); // 9;
 
-    _resample_init_compute();
+    // _resample_init_compute();
 }
 
 void State_Squat::_resample_init_compute() {
@@ -67,14 +67,29 @@ void State_Squat::_resample_init_compute() {
     // phase
     float pos = (env->robot->data.joint_pos[left_knee_id] + \
         env->robot->data.joint_pos[right_knee_id]) / 2;
+
     float pos_phase = asin((env->cfg["commands"]["suqat_command"]["cpos"].as<float>() - pos) / \
         env->cfg["commands"]["suqat_command"]["rad"].as<float>());
     env->robot->data.pos_phase = pos_phase;
+
+    /*
+    std::cout << "init: command_phase: cpos " << env->cfg["commands"]["suqat_command"]["cpos"].as<float>() \
+                                         << " rad:  " << env->cfg["commands"]["suqat_command"]["rad"].as<float>() \
+                                         << " left:  " << left_knee_id  \
+                                         << " right:  " << right_knee_id  \
+                                         << " pos:  " << pos << std::endl;
+
+    std::cout << "joint_pos:  " << env->robot->data.joint_pos << std::endl;
+    */
+
+
 
     if (pos_phase > suqat_command_phase) {
         phase_vel = - phase_vel;
     }
     env->robot->data.phase_vel = phase_vel;
+
+    std::cout << "init: command_phase: " << suqat_command_phase << " pos_phase:  " << pos_phase << "  phase_vel:  " << phase_vel << std::endl;
 }
 
 void State_Squat::_resample_compute() {

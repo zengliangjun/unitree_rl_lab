@@ -1,0 +1,51 @@
+FSM:
+  _: # enabled fsms
+    Passive:
+      id: 1
+    FixStand:
+      id: 2
+    Lyenbot_Squat:
+      id: 101
+      type: Squat
+  Passive:
+    transitions:
+      FixStand: LT + up.on_pressed
+      Lyenbot_Squat: RB + Y.on_pressed
+    mode: [
+      1,1,1,1,1,1,
+      1,1,1,1,1,1,
+      1,
+    ]
+    kd: [
+      0.1, 0.1, 0.1, 0.1, 0.1, 0.1,
+      0.1, 0.1, 0.1, 0.1, 0.1, 0.1,
+      0.1,
+    ]
+  FixStand:
+    transitions:
+      Passive: LT + B.on_pressed
+      Lyenbot_Squat: RB + Y.on_pressed
+    kp: [
+      40.179238471, 99.098427777, 40.179238471, 99.098427777, 14.3, 14.3, # 28.501246196, 28.501246196,
+      40.179238471, 99.098427777, 40.179238471, 99.098427777, 14.3, 14.3, # 28.501246196, 28.501246196,
+      40.179238471,
+    ]
+    kd: [
+      2.557889765, 6.308801854, 2.557889765, 6.308801854, 0.907, 0.907, # 1.814445687, 1.814445687,
+      2.557889765, 6.308801854, 2.557889765, 6.308801854, 0.907, 0.907, # 1.814445687, 1.814445687,
+      2.557889765,
+    ]
+    ts: [0, 3]
+    qs: [
+      [],
+      [ -0.1, 0,0,0.3,-0.2,0,
+        -0.1, 0,0,0.3,-0.2,0,
+        0,
+      ]
+    ]
+  Lyenbot_Squat:
+    transitions:
+      FixStand: LT + up.on_pressed
+      Passive: LT + B.on_pressed
+    policy_dir: config/policy/lyenbot_leg_squat/2026-01-13_19-37-58/
+

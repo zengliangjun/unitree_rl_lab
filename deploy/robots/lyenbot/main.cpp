@@ -29,16 +29,14 @@ int main(int argc, char** argv)
 {
     // Load parameters
     auto vm = param::helper(argc, argv);
-
-    std::cout << " --- Unitree Robotics --- \n";
-    std::cout << "     G1-23dof Controller \n";
+    std::cout << "     Lyenbot Controller \n";
 
     // Unitree DDS Config
     unitree::robot::ChannelFactory::Instance()->Init(0, vm["network"].as<std::string>());
 
     init_fsm_state();
 
-    FSMState::lowcmd->msg_.mode_machine() = 4; // 23dof
+    FSMState::lowcmd->msg_.mode_machine() = ROBOT_ID; // 23dof
     if(!FSMState::lowcmd->check_mode_machine(FSMState::lowstate)) {
         spdlog::critical("Unmatched robot type.");
         exit(-1);
