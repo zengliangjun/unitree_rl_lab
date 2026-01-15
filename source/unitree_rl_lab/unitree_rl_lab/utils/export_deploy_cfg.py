@@ -65,8 +65,8 @@ def export_deploy_cfg(env: ManagerBasedRLEnv, log_dir):
 
         left_knee_name = env.cfg.scene.robot.left_knee_name
         right_knee_name = env.cfg.scene.robot.right_knee_name
-        left_knee_id = asset.joint_names(left_knee_name)[0][0]  #  joint_sdk_names.index(left_knee_name)
-        right_knee_id = asset.joint_names(right_knee_name)[0][0]  #  joint_sdk_names.index(right_knee_name)
+        left_knee_id = asset.find_joints(left_knee_name)[0][0]  #  joint_sdk_names.index(left_knee_name)
+        right_knee_id = asset.find_joints(right_knee_name)[0][0]  #  joint_sdk_names.index(right_knee_name)
 
         cfg["commands"]["suqat_command"]["left_knee_id"] = left_knee_id
         cfg["commands"]["suqat_command"]["right_knee_id"] = right_knee_id

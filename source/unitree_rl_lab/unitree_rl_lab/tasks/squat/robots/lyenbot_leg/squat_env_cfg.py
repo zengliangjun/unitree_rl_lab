@@ -22,7 +22,7 @@ from unitree_rl_lab.assets.robots.lyenbot_legs import LYENBOT_CFG as ROBOT_CFG
 from unitree_rl_lab.tasks.locomotion import mdp
 
 
-from unitree_rl_lab.tasks.squat.mdp import command_squat_cfg, events, observations, rewards, curriculums
+from unitree_rl_lab.tasks.squat.mdp import command_squat_cfg, events, observations, rewards, curriculums, zmp
 
 COBBLESTONE_ROAD_CFG = terrain_gen.TerrainGeneratorCfg(
     size=(8.0, 8.0),
@@ -106,12 +106,22 @@ class EventCfg:
         mode="startup",
         params={
             "asset_cfg": SceneEntityCfg("robot", body_names="torso"),
-            "mass_distribution_params": (-1.0, 3.0),
+            "mass_distribution_params": (-0.5, 3.0),
             "operation": "add",
         },
     )
 
     # reset
+    add_mass = EventTerm(
+        func=mdp.randomize_rigid_body_mass,
+        mode="reset",
+        params={
+            "asset_cfg": SceneEntityCfg("robot"),
+            "mass_distribution_params": (0.6, 1.5),
+            "operation": "scale",
+        },
+    )
+
     base_external_force_torque = EventTerm(
         func=mdp.apply_external_force_torque,
         mode="reset",
@@ -155,7 +165,7 @@ class EventCfg:
         params={
             "velocity_range": {"x": (-0.051, 0.051), "y": (-0.051, 0.051)},
             "max_velocity_range": {"x": (-0.25, 0.25), "y": (-0.25, 0.25)},
-            "speed": 1.1},
+            "speed": 1.001},
     )
 
 
@@ -169,19 +179,19 @@ class CommandsCfg:
                 ],
                 preserve_order=True),
 
-        resampling_time_range=(5, 5),
-        rel_reset_init_envs=0.3,
+        resampling_time_range=(13, 13),
+        rel_reset_init_envs=0.2,
         rel_compute_init_envs=0.2,
         rel_compute_max_envs=0.2,
 
         ranges=command_squat_cfg.SuqatCommandCfg.Ranges(
-            suqat_phase = (- math.pi * 7 / 16, 0.8599),
-            full_times = (4, 4.5)
+            suqat_phase = (- math.pi * 15 / 32, 0.8599),
+            full_times = (1.6, 6.5)
         ),
 
         max_limit_ranges=command_squat_cfg.SuqatCommandCfg.Ranges(
-            suqat_phase = ( - math.pi * 7 / 16, 0.8599),
-            full_times = (0.8, 4.5)
+            suqat_phase = ( - math.pi * 15 / 32, 0.8599),
+            full_times = (1.6, 6.5)
         ),
 
         min_limit_ranges=command_squat_cfg.SuqatCommandCfg.Ranges(
@@ -242,20 +252,14 @@ class ObservationsCfg:
     critic: CriticCfg = CriticCfg()
 
 
-
 @configclass
 class RewardsCfg:
     """Reward terms for the MDP."""
-
     # -- task
     track_squat_pos = RewTerm(
-        func=rewards.track_squat_pos_exp_v1,
-        weight=1.5,
+        func=rewards.track_squat_pos_exp,
+        weight=2.5,
         params={"command_name": "suqat_command",
-                "finished_weight": 1,
-                "finished_max_weight": 6,
-                "penalty_weight": 0.03,
-                "penalty_max_weight": 0.25,
                 "std": math.sqrt(0.01),
                 "asset_cfg": SceneEntityCfg("robot",
                     joint_names=[
@@ -263,15 +267,24 @@ class RewardsCfg:
                         "right_knee_pitch_joint"],
                     preserve_order=True)},
     )
-    track_error_pos = RewTerm(
-        func=rewards.track_error_exp,
-        weight=1.5,
+    penalty_squat_pos = RewTerm(
+        func=rewards.track_squat_error,
+        weight=- 1e-3,
         params={"command_name": "suqat_command",
-                "std": math.sqrt(0.01)}
+                "finished_weight": 1,
+                "finished_max_weight": 2,
+                "penalty_weight": 1,
+                "penalty_max_weight": 3,
+                "std": math.sqrt(0.01),
+                "asset_cfg": SceneEntityCfg("robot",
+                    joint_names=[
+                        "left_knee_pitch_joint",
+                        "right_knee_pitch_joint"],
+                    preserve_order=True)}
     )
     track_symmetry_pos = RewTerm(
         func=rewards.track_symmetry_pos_exp,
-        weight=0.1,
+        weight=0.15,
         params={"std": math.sqrt(0.09),
                 "asset_cfg":
                 SceneEntityCfg("robot",
@@ -285,11 +298,29 @@ class RewardsCfg:
                     preserve_order=True)},
     )
 
+    '''
+    reward_pitch2zero = RewTerm(
+        func=rewards.reward_pitch_forward_sing,
+        weight=0.07,
+        params={"asset_cfg":
+                SceneEntityCfg("robot",
+                    joint_names=[
+                        "left_hip_pitch_joint",
+                        "right_hip_pitch_joint",
+                        "left_knee_pitch_joint",
+                        "right_knee_pitch_joint",
+                        "left_ankle_pitch_joint",
+                        "right_ankle_pitch_joint"
+                        ],
+                    preserve_order=True)},
+    )
+    '''
     reward_pitch2zero = RewTerm(
         func=rewards.reward_pitch2zero,
-        weight=0.07,
-        params={"std": 0.25,
+        weight=0.10,
+        params={
                 "command_name": "suqat_command",
+                "std": 0.125,
                 "asset_cfg":
                 SceneEntityCfg("robot",
                     joint_names=[
@@ -305,8 +336,8 @@ class RewardsCfg:
 
     com_zero = RewTerm(
         func=rewards.com_zero,
-        weight=0.35,
-        params={"std": 0.06,
+        weight=0.5,
+        params={"std": 0.12,
                 "asset_cfg":
                 SceneEntityCfg("robot",
                     body_names=[
@@ -315,27 +346,43 @@ class RewardsCfg:
                         ],
                     preserve_order=True)},
     )
+    '''
+
+    com_zero = RewTerm(
+        func=zmp.ZMP,
+        weight=0.5,
+        params={"std": 0.12,
+                "asset_cfg":
+                SceneEntityCfg("robot",
+                    body_names=[
+                        "left_ankle_roll_link",
+                        "right_ankle_roll_link"
+                        ],
+                    preserve_order=True)},
+    )
+    '''
+
     zero_ang_vel = RewTerm(
-        func=rewards.reward_zero_ang_vel_exp,
-        weight=0.1,
-        params={"finished_weight": 6, "std": 0.25}
+        func=rewards.reward_zero_ang_vel_exp_v1,
+        weight=0.5,
+        params={"finished_weight": 3, "std": 0.25}
     )
     zero_lin_xy_vel = RewTerm(
-        func=rewards.reward_zero_lin_vel_xy_exp,
+        func=rewards.reward_zero_lin_vel_xy_exp_v1,
         weight=0.1,
-        params={"finished_weight": 6, "std": 0.25}
+        params={"finished_weight": 3, "std": 0.25}
     )
 
     alive = RewTerm(func=mdp.is_alive, weight=0.07)
 
     joint_vel = RewTerm(func=rewards.joint_vel_l2, weight=-0.01,
-        params={"finished_weight": 6} )
+        params={"finished_weight": 3} )
     joint_acc = RewTerm(func=rewards.joint_acc_l2, weight=-1e-5,
-        params={"finished_weight": 6} )
+        params={"finished_weight": 3} )
     action_rate = RewTerm(func=mdp.action_rate_l2, weight=-0.03)
     dof_pos_limits = RewTerm(func=mdp.joint_pos_limits, weight=-5.0)
     energy = RewTerm(func=rewards.energy, weight=-4e-3,
-        params={"finished_weight": 6})
+        params={"finished_weight": 3})
 
     joint_deviation = RewTerm(
         func=mdp.joint_deviation_l1,
@@ -445,14 +492,14 @@ class TerminationsCfg:
         })
     '''
 
-
 @configclass
 class CurriculumCfg:
     """Curriculum terms for the MDP."""
-    squat_levels = CurrTerm(func=curriculums.squat_cmd_levels,
+    squat_levels = CurrTerm(func=curriculums.squat_cmd_levels_v1,
         params={
                 "command_term_name": "suqat_command",
                 "reward_term_name": "track_squat_pos",
+                "penalty_term_name": "penalty_squat_pos",
             })
 
     push_levels = CurrTerm(func=curriculums.squat_push_levels,
@@ -482,7 +529,7 @@ class RobotEnvCfg(ManagerBasedRLEnvCfg):
         """Post initialization."""
         # general settings
         self.decimation = 4
-        self.episode_length_s = 20.0
+        self.episode_length_s = 26
         # simulation settings
         self.sim.dt = 0.005
         self.sim.render_interval = self.decimation
@@ -510,7 +557,7 @@ class RobotEnvCfg(ManagerBasedRLEnvCfg):
 class RobotPlayEnvCfg(RobotEnvCfg):
     def __post_init__(self):
         super().__post_init__()
-        self.episode_length_s = 60.0
+        self.episode_length_s = 200.0
         self.scene.num_envs = 32
 
         self.scene.terrain.terrain_generator.border_width=2.0
@@ -519,3 +566,22 @@ class RobotPlayEnvCfg(RobotEnvCfg):
         self.commands.suqat_command.ranges = self.commands.suqat_command.max_limit_ranges
         self.events.push_robot = None
         self.curriculum = None
+
+
+from unitree_rl_lab.assets.robots.lyenbot_unitree import LYENBOTLEGS_CFG as UNITREE_CFG
+
+
+@configclass
+class UnitreeRobotEnvCfg(RobotEnvCfg):
+
+    def __post_init__(self):
+        super().__post_init__()
+        self.scene.robot = UNITREE_CFG.replace(prim_path="{ENV_REGEX_NS}/Robot")
+
+
+@configclass
+class UnitreeRobotPlayEnvCfg(RobotPlayEnvCfg):
+    def __post_init__(self):
+        super().__post_init__()
+        self.scene.robot = UNITREE_CFG.replace(prim_path="{ENV_REGEX_NS}/Robot")
+

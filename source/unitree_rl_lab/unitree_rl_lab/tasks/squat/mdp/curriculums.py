@@ -10,7 +10,6 @@ from . import command_squat
 if TYPE_CHECKING:
     from isaaclab.envs import ManagerBasedRLEnv
 
-
 def squat_cmd_levels(
     env: ManagerBasedRLEnv,
     env_ids: Sequence[int],
@@ -22,38 +21,63 @@ def squat_cmd_levels(
     max_limit_ranges = command_term.cfg.max_limit_ranges
     min_limit_ranges = command_term.cfg.min_limit_ranges
 
+    reward_term = env.reward_manager.get_term_cfg(reward_term_name)
+    reward = torch.mean(env.reward_manager._episode_sums[reward_term_name][env_ids]) / env.max_episode_length_s
+
+    level = max_limit_ranges.full_times[0] / ranges.full_times[0]
+    if env.common_step_counter % env.max_episode_length == 0:
+        if reward > reward_term.weight * 0.8 and command_term.mean_episode_length > env.max_episode_length * 0.8:
+            times_min = max(ranges.full_times[0] - 0.05, max_limit_ranges.full_times[0])
+            times_max = min(ranges.full_times[1] + 0.05, max_limit_ranges.full_times[1])
+            ranges.full_times = [times_min, times_max]
+
+    return torch.tensor(level, device=env.device)
+
+
+def squat_cmd_levels_v1(
+    env: ManagerBasedRLEnv,
+    env_ids: Sequence[int],
+    command_term_name: str = "suqat_command",
+    reward_term_name: str = "track_squat_pos",
+    penalty_term_name: str = "penalty_squat_pos",
+) -> torch.Tensor:
+    command_term: command_squat.SuqatCommand = env.command_manager.get_term(command_term_name)
+    ranges = command_term.cfg.ranges
+    max_limit_ranges = command_term.cfg.max_limit_ranges
+    min_limit_ranges = command_term.cfg.min_limit_ranges
 
     reward_term = env.reward_manager.get_term_cfg(reward_term_name)
     reward = torch.mean(env.reward_manager._episode_sums[reward_term_name][env_ids]) / env.max_episode_length_s
 
     level = max_limit_ranges.full_times[0] / ranges.full_times[0]
     if env.common_step_counter % env.max_episode_length == 0:
-        if reward > reward_term.weight * 0.65 and command_term.mean_episode_length > env.max_episode_length * 0.6:
-            #suqat_min = max(ranges.suqat_phase[0] - 0.05, max_limit_ranges.suqat_phase[0])
-            #suqat_max = min(ranges.suqat_phase[1] + 0.05, max_limit_ranges.suqat_phase[1])
-
-            #ranges.suqat_phase = [suqat_min, suqat_max]
+        if reward > reward_term.weight * 0.8 and command_term.mean_episode_length > env.max_episode_length * 0.8:
 
             times_min = max(ranges.full_times[0] - 0.05, max_limit_ranges.full_times[0])
             times_max = min(ranges.full_times[1] + 0.05, max_limit_ranges.full_times[1])
 
             ranges.full_times = [times_min, times_max]
-            if times_min <= max_limit_ranges.full_times[0] and \
+
+            if env.common_step_counter % (env.max_episode_length * 4) == 0 and \
+                times_min <= max_limit_ranges.full_times[0] and \
                 times_max >= max_limit_ranges.full_times[1] and \
-                command_term.mean_episode_length > env.max_episode_length * 0.8:
+                command_term.mean_episode_length > env.max_episode_length * 0.96:
+
+                ##
+                penalty_term = env.reward_manager.get_term_cfg(penalty_term_name)
 
 
-                reward_term.params["finished_weight"] += 0.1
-                reward_term.params["finished_weight"] = min(reward_term.params["finished_weight"], reward_term.params["finished_max_weight"])
+                penalty_term.params["finished_weight"] *= 1.001
+                penalty_term.params["finished_weight"] = min(penalty_term.params["finished_weight"], penalty_term.params["finished_max_weight"])
 
-                level += reward_term.params["finished_weight"] / reward_term.params["finished_max_weight"]
+                level += penalty_term.params["finished_weight"] / penalty_term.params["finished_max_weight"]
 
-                if reward_term.params["finished_weight"] >= reward_term.params["finished_max_weight"]:
+                if penalty_term.params["finished_weight"] >= penalty_term.params["finished_max_weight"]:
 
-                    reward_term.params["penalty_weight"] += 0.01
-                    reward_term.params["penalty_weight"] = min(reward_term.params["penalty_weight"], reward_term.params["penalty_max_weight"])
+                    penalty_term.params["penalty_weight"] *= 1.001
+                    penalty_term.params["penalty_weight"] = min(penalty_term.params["penalty_weight"], penalty_term.params["penalty_max_weight"])
 
-                    level += reward_term.params["penalty_weight"] / reward_term.params["penalty_max_weight"]
+                    level += penalty_term.params["penalty_weight"] / penalty_term.params["penalty_max_weight"]
 
 
     else:
@@ -61,11 +85,13 @@ def squat_cmd_levels(
         if times_min <= max_limit_ranges.full_times[0] and \
             times_max >= max_limit_ranges.full_times[1]:
 
-            level += reward_term.params["finished_weight"] / reward_term.params["finished_max_weight"]
+            penalty_term = env.reward_manager.get_term_cfg(penalty_term_name)
 
-            if reward_term.params["finished_weight"] >= reward_term.params["finished_max_weight"]:
+            level += penalty_term.params["finished_weight"] / penalty_term.params["finished_max_weight"]
 
-                level += reward_term.params["penalty_weight"] / reward_term.params["penalty_max_weight"]
+            if penalty_term.params["finished_weight"] >= penalty_term.params["finished_max_weight"]:
+
+                level += penalty_term.params["penalty_weight"] / penalty_term.params["penalty_max_weight"]
 
         '''
         if reward < reward_term.weight * 0.2:
@@ -81,7 +107,6 @@ def squat_cmd_levels(
         '''
 
     return torch.tensor(level, device=env.device)
-
 
 
 def squat_push_levels(
@@ -103,7 +128,7 @@ def squat_push_levels(
     reward = torch.mean(env.reward_manager._episode_sums[reward_term_name][env_ids]) / env.max_episode_length_s
 
     if env.common_step_counter % env.max_episode_length == 0:
-        if reward > reward_term.weight * 0.75 and command_term.mean_episode_length > env.max_episode_length * 0.85:
+        if reward > reward_term.weight * 0.85 and command_term.mean_episode_length > env.max_episode_length * 0.96:
 
             for key in ranges:
                 org = ranges[key]
