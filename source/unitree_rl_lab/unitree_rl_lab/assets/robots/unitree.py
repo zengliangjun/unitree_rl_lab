@@ -28,6 +28,9 @@ class UnitreeArticulationCfg(ArticulationCfg):
     legs_joint_names: list[str] = None
     arms_joint_names: list[str] = None
 
+    left_knee_name: str = None
+    right_knee_name: str = None
+
 
 import os
 import os.path as osp

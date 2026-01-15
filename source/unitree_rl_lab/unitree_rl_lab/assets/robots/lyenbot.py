@@ -205,4 +205,6 @@ LYENBOT_CFG = unitree.UnitreeArticulationCfg(
         "right_elbow_pitch_joint",
         "right_elbow_roll_joint",
     ],
+    left_knee_name="left_knee_pitch_joint",
+    right_knee_name="right_knee_pitch_joint"
 )

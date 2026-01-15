@@ -59,6 +59,17 @@ def export_deploy_cfg(env: ManagerBasedRLEnv, log_dir):
         command = env.command_manager.get_term("suqat_command")
         cfg["commands"]["suqat_command"]["cpos"] = command.cpos[0].item()
         cfg["commands"]["suqat_command"]["rad"] = command.rad[0].item()
+        ##
+        cfg["commands"]["suqat_command"]["update_command"] = "RT + Y.on_pressed"
+        cfg["commands"]["suqat_command"]["update_time"] = "RT + X.on_pressed"
+
+        left_knee_name = env.cfg.scene.robot.left_knee_name
+        right_knee_name = env.cfg.scene.robot.right_knee_name
+        left_knee_id = asset.joint_names(left_knee_name)[0][0]  #  joint_sdk_names.index(left_knee_name)
+        right_knee_id = asset.joint_names(right_knee_name)[0][0]  #  joint_sdk_names.index(right_knee_name)
+
+        cfg["commands"]["suqat_command"]["left_knee_id"] = left_knee_id
+        cfg["commands"]["suqat_command"]["right_knee_id"] = right_knee_id
 
     # --- actions ---
     action_names = env.action_manager.active_terms

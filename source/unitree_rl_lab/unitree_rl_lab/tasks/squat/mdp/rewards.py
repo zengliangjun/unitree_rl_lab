@@ -15,8 +15,20 @@ from unitree_rl_lab.tasks.squat.mdp import command_squat
 if TYPE_CHECKING:
     from isaaclab.envs import ManagerBasedRLEnv
 
-
 def track_squat_pos_exp(
+    env: ManagerBasedRLEnv, std: float, command_name: str,
+    asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
+) -> torch.Tensor:
+
+    command: command_squat.SuqatCommand = env.command_manager.get_term(command_name)
+    asset: Articulation = env.scene[asset_cfg.name]
+    pos_error = command.command_pos - asset.data.joint_pos[:, asset_cfg.joint_ids]
+    pos_error = torch.abs(pos_error / std)
+    reward = torch.sum(torch.exp(-pos_error), dim = -1)
+    return  reward
+
+
+def track_squat_pos_exp_v1(
     env: ManagerBasedRLEnv, std: float, command_name: str,
     finished_weight: float = 1, finished_max_weight: float = 20,
     penalty_weight: float = 0.03, penalty_max_weight: float = 0.25,
@@ -24,17 +36,17 @@ def track_squat_pos_exp(
 ) -> torch.Tensor:
 
     command: command_squat.SuqatCommand = env.command_manager.get_term(command_name)
-
     asset: Articulation = env.scene[asset_cfg.name]
     pos_error = command.command_pos - asset.data.joint_pos[:, asset_cfg.joint_ids]
-    #pos_error = torch.square(pos_error / std)
-    #return torch.norm(torch.exp(-pos_error), dim = -1)
+
     pos_error = torch.abs(pos_error / std)
     reward = torch.sum(torch.exp(-pos_error), dim = -1)
     error = torch.zeros_like(pos_error)
     error[command.is_finished_flags] = pos_error[command.is_finished_flags] * finished_weight
     pos_error[command.is_finished_flags] *= finished_weight
     return  reward - torch.sum(pos_error, dim = -1) * penalty_weight
+
+
 
 def track_error_exp(
     env: ManagerBasedRLEnv, std: float, command_name: str

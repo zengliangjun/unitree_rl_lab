@@ -249,7 +249,7 @@ class RewardsCfg:
 
     # -- task
     track_squat_pos = RewTerm(
-        func=rewards.track_squat_pos_exp,
+        func=rewards.track_squat_pos_exp_v1,
         weight=1.5,
         params={"command_name": "suqat_command",
                 "finished_weight": 1,
