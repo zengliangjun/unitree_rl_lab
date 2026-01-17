@@ -186,7 +186,7 @@ class CommandsCfg:
 
         ranges=command_squat_cfg.SuqatCommandCfg.Ranges(
             suqat_phase = (- math.pi * 15 / 32, 0.8599),
-            full_times = (1.6, 6.5)
+            full_times = (4, 6.5)
         ),
 
         max_limit_ranges=command_squat_cfg.SuqatCommandCfg.Ranges(
