@@ -27,7 +27,7 @@ from isaaclab.utils.assets import ISAAC_NUCLEUS_DIR, ISAACLAB_NUCLEUS_DIR
 from isaaclab.utils.noise import AdditiveUniformNoiseCfg as Unoise
 from isaaclab.utils.noise import AdditiveGaussianNoiseCfg as Gnoise
 
-from unitree_rl_lab.tasks.locomotion import mdp  # noqa: F401, F403
+from unitree_rl_lab.tasks.locomotion_cam import mdp  # noqa: F401, F403
 from unitree_rl_lab.tasks.locomotion.mdp import commands_ext_cfg
 
 ##
@@ -228,6 +228,16 @@ class EventsCfg:
     )
 
     # reset
+    add_mass = EventTerm(
+        func=mdp.randomize_rigid_body_mass,
+        mode="reset",
+        params={
+            "asset_cfg": SceneEntityCfg("robot"),
+            "mass_distribution_params": (0.6, 1.5),
+            "operation": "scale",
+        },
+    )
+
     reset_base = EventTerm(
         func=mdp.reset_root_state_uniform,
         mode="reset",
@@ -494,6 +504,7 @@ class RewardsCfg:
 @configclass
 class TerminationsCfg:
 
+    '''
     illegal_contact = DoneTerm(
         func=mdp.IllegalContact,
         params={
@@ -530,6 +541,8 @@ class TerminationsCfg:
             ]
             },
     )
+    '''
+
     base_termination = DoneTerm(
         func=mdp.BaseTermination,
         params={
@@ -559,7 +572,7 @@ class CurriculumCfg:
 
 
 @configclass
-class HumanoidFullModularEnvCfg(manager_based_rl_env_cfg.ModuleRLEnvCfg):
+class EnvCfg(manager_based_rl_env_cfg.ModuleRLEnvCfg):
     viewer = ViewerCfg(eye=(2.0, -2.0, 0.5), origin_type='asset_root', asset_name='robot')
     scene: RobotSceneCfg = RobotSceneCfg(num_envs=4096, env_spacing=3.)
 
@@ -600,7 +613,7 @@ class HumanoidFullModularEnvCfg(manager_based_rl_env_cfg.ModuleRLEnvCfg):
                 self.scene.terrain.terrain_generator.curriculum = False
 
 @configclass
-class HumanoidFullModularEnvCfg_PLAY(HumanoidFullModularEnvCfg):
+class EnvCfg_PLAY(EnvCfg):
     def __post_init__(self):
         # post init of parent
         super().__post_init__()

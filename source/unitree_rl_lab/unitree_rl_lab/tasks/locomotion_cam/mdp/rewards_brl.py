@@ -74,7 +74,7 @@ class action_smoothness2(ManagerTermBase):
         prev_prev_action = self.prev_prev_action
         dt2 = (env.step_dt)**2
         error = torch.square(action - 2*prev_action + prev_prev_action)/dt2
-        return -torch.sum(error, dim=1)
+        return torch.sum(error, dim=1)
 
 def joint_regularization(env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")) -> torch.Tensor:
     """Penalize joint positions that deviate from the default one."""

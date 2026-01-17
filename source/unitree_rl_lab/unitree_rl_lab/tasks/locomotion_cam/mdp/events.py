@@ -67,8 +67,13 @@ def apply_external_force_torque_disturbance(
     _external_force_b = torch.zeros((env.scene.num_envs, asset.num_bodies, 3), device=env.device)
     _external_torque_b = torch.zeros_like(_external_force_b)
 
-    indices = torch.tensor(body_ids, dtype=torch.long, device=env.device).repeat(len(env_ids), 1) + \
-              env_ids.unsqueeze(1) * asset.num_bodies
+    if isinstance(body_ids, list):
+        body_ids = torch.tensor(body_ids, dtype=torch.long, device=env.device)
+    else:
+        body_ids = torch.arange(num_bodies, device=asset.device)
+
+    indices = body_ids.repeat(len(env_ids), 1) + \
+              env_ids.unsqueeze(1) * num_bodies
     indices = indices.view(-1)
 
     _external_force_b.flatten(0, 1)[indices] = forces.flatten(0, 1)

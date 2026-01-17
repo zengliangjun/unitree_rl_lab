@@ -286,6 +286,7 @@ class ModularOnPolicyRunner:
         str = f" \033[1m Learning iteration {locs['it']}/{locs['tot_iter']} \033[0m "
 
         log_string = \
+                "\n"    \
                 f"""{'#' * width}\n""" \
                 f"""{str.center(width, ' ')}\n\n""" \
                 f"""{'Computation:':>{pad}} {fps:.0f} steps/s (collection: {locs[
