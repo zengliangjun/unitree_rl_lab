@@ -4,13 +4,13 @@ import torch
 from collections.abc import Sequence
 from typing import TYPE_CHECKING
 
-from isaaclab.envs.mdp.commands.velocity_command import UniformVelocityCommand
+from .commands import CommandWithEpisodeInfo
 
 if TYPE_CHECKING:
     from isaaclab.envs import ManagerBasedEnv
     from .commands_ext_cfg import CommandExtCfg
 
-class CommandExt(UniformVelocityCommand):
+class CommandExt(CommandWithEpisodeInfo):
 
     cfg: CommandExtCfg
 

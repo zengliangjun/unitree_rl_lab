@@ -13,8 +13,8 @@ if TYPE_CHECKING:
 def reset_joints_by_range(
     env: ManagerBasedEnv,
     env_ids: torch.Tensor,
-    position_range: torch.Tensor,
-    velocity_range: torch.Tensor,
+    position_range: tuple[float, float],
+    velocity_range: tuple[float, float],
     asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
 ):
     """Reset the robot joints by sampling random values from the given ranges.
@@ -27,8 +27,8 @@ def reset_joints_by_range(
     joint_pos = asset.data.default_joint_pos[env_ids, asset_cfg.joint_ids].clone()
     joint_vel = asset.data.default_joint_vel[env_ids, asset_cfg.joint_ids].clone()
 
-    position_range = position_range.to(asset.device)
-    velocity_range = velocity_range.to(asset.device)
+    position_range = torch.tensor(position_range, device=asset.device)
+    velocity_range = torch.tensor(velocity_range, device=asset.device)
 
     # get default joint state
     joint_pos = joint_pos + math_utils.sample_uniform(position_range[..., 0], position_range[..., 1], (len(env_ids), asset.num_joints), device=asset.device)
@@ -86,3 +86,29 @@ def apply_external_force_torque_disturbance(
         indices=env_ids,
         is_global=False,
     )
+
+
+def apply_force_mix(
+    env: ManagerBasedEnv,
+    env_ids: torch.Tensor,
+    velocity_range: dict[str, tuple[float, float]],
+    force_range: tuple[float, float],
+    torque_range: tuple[float, float],
+    asset_cfg: SceneEntityCfg = SceneEntityCfg("robot", body_names="base"),
+):
+
+    shuffled_indices = torch.randperm(env_ids.shape[0], device=env.device)  # 打乱索引
+    velocity_len = env_ids.shape[0] // 2
+
+    velocity_indices = shuffled_indices[:velocity_len]
+    external_indices = shuffled_indices[velocity_len:]
+
+    velocity_env_ids = env_ids[velocity_indices]
+    external_env_ids = env_ids[external_indices]
+
+    from isaaclab.envs.mdp import events
+    if 0 != velocity_env_ids.shape[0]:
+        events.push_by_setting_velocity(env, velocity_env_ids, velocity_range, asset_cfg)
+
+    if 0 != external_env_ids.shape[0]:
+        apply_external_force_torque_disturbance(env, external_env_ids, force_range, torque_range, asset_cfg)

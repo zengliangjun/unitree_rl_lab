@@ -46,7 +46,7 @@ class SuqatCommand(CommandTerm):
         self.is_max_env = torch.zeros(self.num_envs, dtype=torch.bool, device=self.device)
         self.is_finished_flags = torch.zeros(self.num_envs, dtype=torch.bool, device=self.device)
         self.episode_length_buffer = torch.zeros(self.num_envs, dtype=torch.long, device=self.device)
-        self.mean_episode_length = 0
+        self.average_episode_length = 0
 
 
         pos_limits = self.asset.data.joint_pos_limits[:, self.cfg.asset_cfg.joint_ids].clone()  # n * j * 2
@@ -161,7 +161,7 @@ class SuqatCommand(CommandTerm):
 
     """
     def _resample_command(self, env_ids: Sequence[int]):
-        self.mean_episode_length = self.mean_episode_length * 0.9 + torch.mean(self.episode_length_buffer[env_ids].float()).cpu().item() * 0.1
+        self.average_episode_length = self.average_episode_length * 0.9 + torch.mean(self.episode_length_buffer[env_ids].float()).cpu().item() * 0.1
         self.episode_length_buffer[env_ids] = 0
         """
         for reset env_ids
