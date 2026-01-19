@@ -357,12 +357,16 @@ class ModularOnPolicyRunner:
 
     def get_inference_policy(self, device=None):
         self.eval_mode()  # switch to evaluation mode (dropout for example)
+        leg_policy = self.leg_alg.policy
+        arm_policy = self.arm_alg.policy
+
+        from .modular_inference import ModularInference
         if device is not None:
-            self.leg_alg.policy.to(device)
-            self.arm_alg.policy.to(device)
-        leg_policy = self.leg_alg.policy.act_inference
-        arm_policy = self.arm_alg.policy.act_inference
-        return leg_policy, arm_policy
+            inference = ModularInference(leg_policy, arm_policy).to(device)
+        else:
+            inference = ModularInference(leg_policy, arm_policy).to(self.device)
+        inference.eval()
+        return inference
 
     def train_mode(self):
         self.leg_alg.policy.train()

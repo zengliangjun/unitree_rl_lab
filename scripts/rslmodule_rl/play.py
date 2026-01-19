@@ -38,6 +38,8 @@ args_cli = parser.parse_args()
 if args_cli.video:
     args_cli.enable_cameras = True
 
+
+args_cli.task="g123dof-cam-unitree"
 # launch omniverse app
 app_launcher = AppLauncher(args_cli)
 simulation_app = app_launcher.app
@@ -134,38 +136,14 @@ def main():
     runner.load(resume_path)
 
     # obtain the trained policy for inference
-    leg_policy, arm_policy = runner.get_inference_policy(device=env.unwrapped.device)
+    policy = runner.get_inference_policy(device=env.unwrapped.device)
 
-    # extract the neural network module
-    # we do this in a try-except to maintain backwards compatibility.
-    try:
-        # version 2.3 onwards
-        leg_policy_nn = runner.leg_alg.policy
-        arm_policy_nn = runner.arm_alg.policy
-    except AttributeError:
-        # version 2.2 and below
-        leg_policy_nn = runner.leg_alg.actor_critic
-        arm_policy_nn = runner.arm_alg.actor_critic
-
-    # extract the normalizer
-    if hasattr(leg_policy_nn, "actor_obs_normalizer"):
-        leg_normalizer = leg_policy_nn.actor_obs_normalizer
-        arm_normalizer = arm_policy_nn.actor_obs_normalizer
-    elif hasattr(leg_policy_nn, "student_obs_normalizer"):
-        leg_normalizer = leg_policy_nn.student_obs_normalizer
-        arm_normalizer = arm_policy_nn.student_obs_normalizer
-    else:
-        leg_normalizer = None
-        arm_normalizer = None
     # export policy to onnx/jit
+    model_name = os.path.basename(resume_path).split(".")[0]
     export_model_dir = os.path.join(os.path.dirname(resume_path), "exported")
-    export_policy_as_jit(leg_policy_nn, normalizer=leg_normalizer, path=export_model_dir, filename="leg_policy.pt")
-    export_policy_as_jit(arm_policy_nn, normalizer=arm_normalizer, path=export_model_dir, filename="arm_policy.pt")
-    export_policy_as_onnx(leg_policy_nn, normalizer=leg_normalizer, path=export_model_dir, filename="leg_policy.onnx")
-    export_policy_as_onnx(arm_policy_nn, normalizer=arm_normalizer, path=export_model_dir, filename="arm_policy.onnx")
+    policy.export_onnx(path=export_model_dir, filename=f"{model_name}.onnx")
 
     dt = env.unwrapped.step_dt
-
     # reset environment
     obs = env.get_observations()
     if isinstance(obs, list) or isinstance(obs, tuple):
@@ -177,9 +155,7 @@ def main():
         # run everything in inference mode
         with torch.inference_mode():
             # agent stepping
-            leg_actions = leg_policy(obs)
-            arm_actions = arm_policy(obs)
-            actions = torch.cat([leg_actions, arm_actions], dim=-1)
+            actions = policy(obs)
             # env stepping
             obs, _, _, _ = env.step(actions)
         if args_cli.video:
