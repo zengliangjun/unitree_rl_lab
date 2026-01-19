@@ -7,6 +7,16 @@ gym.register(
     kwargs={
         "env_cfg_entry_point": f"{__name__}.velocity_env_cfg:RobotEnvCfg",
         "play_env_cfg_entry_point": f"{__name__}.velocity_env_cfg:RobotPlayEnvCfg",
-        "rsl_rl_cfg_entry_point": f"unitree_rl_lab.tasks.locomotion.agents.rsl_rl_ppo_cfg:BasePPORunnerCfg",
+        "rsl_rl_cfg_entry_point": f"unitree_rl_lab.tasks.locomotion.agents.rsl_rl_ppo_cfg:BasePPORunnerCfgFixForUnitree",
     },
 )
+
+'''
+please copy
+
+unitree_rl_lab/source/unitree_rl_lab/rslext_rl/modules/actor_critic.py
+to rsl_rl
+
+rsl_rl/modules/actor_critic.py
+
+'''
