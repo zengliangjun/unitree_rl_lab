@@ -35,10 +35,8 @@ class action_smoothness1(ManagerTermBase):
 
         action = env.action_manager.action[:, self.start_dim:self.end_dim]
         prev_action = env.action_manager.prev_action[:, self.start_dim:self.end_dim]
-        dt2 = (env.step_dt)**2
-        error = torch.square(action - prev_action) / dt2
+        error = torch.square(action - prev_action)
         return torch.sum(error, dim=1)
-
 
 class action_smoothness2(ManagerTermBase):
 
@@ -72,8 +70,7 @@ class action_smoothness2(ManagerTermBase):
         action = env.action_manager.action[:, self.start_dim:self.end_dim]
         prev_action = env.action_manager.prev_action[:, self.start_dim:self.end_dim]
         prev_prev_action = self.prev_prev_action
-        dt2 = (env.step_dt)**2
-        error = torch.square(action - 2*prev_action + prev_prev_action)/dt2
+        error = torch.square(action - 2*prev_action + prev_prev_action)
         return torch.sum(error, dim=1)
 
 def joint_regularization(env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")) -> torch.Tensor:
