@@ -77,7 +77,7 @@ REGISTER_OBSERVATION(joint_pos_rel)
             data = tmp_data;
         }
     } catch(const std::exception& e) {
-    
+
     }
 
     return data;
@@ -119,6 +119,29 @@ REGISTER_OBSERVATION(velocity_commands)
     obs[1] = std::clamp(-joystick->lx(), cfg["lin_vel_y"][0].as<float>(), cfg["lin_vel_y"][1].as<float>());
     obs[2] = std::clamp(-joystick->rx(), cfg["ang_vel_z"][0].as<float>(), cfg["ang_vel_z"][1].as<float>());
 
+    return obs;
+}
+
+REGISTER_OBSERVATION(command_lin_vel)
+{
+    std::vector<float> obs(2);
+    auto & joystick = env->robot->data.joystick;
+
+    const auto cfg = env->cfg["commands"]["base_velocity"]["ranges"];
+
+    obs[0] = std::clamp(joystick->ly(), cfg["lin_vel_x"][0].as<float>(), cfg["lin_vel_x"][1].as<float>());
+    obs[1] = std::clamp(-joystick->lx(), cfg["lin_vel_y"][0].as<float>(), cfg["lin_vel_y"][1].as<float>());
+    return obs;
+}
+
+REGISTER_OBSERVATION(command_ang_vel)
+{
+    std::vector<float> obs(1);
+    auto & joystick = env->robot->data.joystick;
+
+    const auto cfg = env->cfg["commands"]["base_velocity"]["ranges"];
+
+    obs[0] = std::clamp(-joystick->rx(), cfg["ang_vel_z"][0].as<float>(), cfg["ang_vel_z"][1].as<float>());
     return obs;
 }
 

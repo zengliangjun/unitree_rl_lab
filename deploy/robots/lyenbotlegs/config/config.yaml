@@ -4,12 +4,16 @@ FSM:
       id: 1
     FixStand:
       id: 2
+    Velocity:
+      id: 3
+      type: RLBase
     Lyenbot_Squat:
       id: 101
       type: Squat
   Passive:
     transitions:
       FixStand: LT + up.on_pressed
+      Velocity: RB + X.on_pressed
       Lyenbot_Squat: RB + Y.on_pressed
     mode: [
       1,1,1,1,1,1,
@@ -24,6 +28,7 @@ FSM:
   FixStand:
     transitions:
       Passive: LT + B.on_pressed
+      Velocity: RB + X.on_pressed
       Lyenbot_Squat: RB + Y.on_pressed
     kp: [
       40.179238471, 99.098427777, 40.179238471, 99.098427777, 14.3, 14.3, # 28.501246196, 28.501246196,
@@ -43,9 +48,16 @@ FSM:
         0,
       ]
     ]
+  Velocity:
+    transitions:
+      FixStand: LT + up.on_pressed
+      Passive: LT + B.on_pressed
+      Lyenbot_Squat: RB + Y.on_pressed
+    policy_dir: config/policy/20260120_033507-lyenbotlegloc_loc_fastsac_v1-locomotion/
   Lyenbot_Squat:
     transitions:
       FixStand: LT + up.on_pressed
       Passive: LT + B.on_pressed
-    policy_dir: config/policy/lyenbot_leg_squat/2026-01-13_19-37-58/
+    # policy_dir: config/policy/lyenbot_leg_squat/2026-01-15_20-32-26/
+    policy_dir: config/policy/lyenbotleg_cam_unitree_squat/2026-01-20_23-03-14/
 
