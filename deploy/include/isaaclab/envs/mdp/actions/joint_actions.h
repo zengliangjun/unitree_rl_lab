@@ -60,17 +60,17 @@ public:
     }
 
 
-    int action_dim() 
+    int action_dim()
     {
         return _action_dim;
     }
 
-    std::vector<float> raw_actions() 
+    std::vector<float> raw_actions()
     {
         return _raw_actions;
     }
-    
-    std::vector<float> processed_actions() 
+
+    std::vector<float> processed_actions()
     {
         return _processed_actions;
     }
@@ -113,5 +113,27 @@ public:
 
 REGISTER_ACTION(JointPositionAction);
 REGISTER_ACTION(JointVelocityAction);
+
+class leg : public JointAction
+{
+public:
+    leg(YAML::Node cfg, ManagerBasedRLEnv* env)
+    :JointAction(cfg, env)
+    {
+    }
+};
+
+class arm : public JointAction
+{
+public:
+    arm(YAML::Node cfg, ManagerBasedRLEnv* env)
+    :JointAction(cfg, env)
+    {
+    }
+};
+
+
+REGISTER_ACTION(leg);
+REGISTER_ACTION(arm);
 
 };
