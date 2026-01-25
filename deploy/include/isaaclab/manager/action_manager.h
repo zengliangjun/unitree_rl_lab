@@ -10,7 +10,7 @@
 namespace isaaclab
 {
 
-class ActionTerm 
+class ActionTerm
 {
 public:
     ActionTerm(YAML::Node cfg, ManagerBasedRLEnv* env): cfg(cfg), env(env) {}
@@ -19,6 +19,12 @@ public:
     virtual std::vector<float> raw_actions() = 0;
     virtual std::vector<float> processed_actions() = 0;
     virtual void process_actions(std::vector<float> actions) = 0;
+    /**
+     *  for joint actions mapping
+     */
+    virtual bool use_joint_ids() = 0;
+    virtual std::vector<int> joint_ids() = 0;
+
     virtual void reset(){};
 
 protected:
@@ -64,17 +70,42 @@ public:
         return _action;
     }
 
+    /**
+     used for motor commands
+     called by State_RLBase::run
+     *
+     */
     std::vector<float> processed_actions()
     {
         std::vector<float> actions;
+        if (_use_joint_ids)
+        {
+            actions.resize(_action.size(), 0.0f);
+        }
         for(auto & term : _terms)
         {
             auto term_action = term->processed_actions();
-            actions.insert(actions.end(), term_action.begin(), term_action.end());
+            if (_use_joint_ids)
+            {
+                auto joint_ids = term->joint_ids();
+                for (size_t i = 0; i < joint_ids.size(); i++)
+                {
+                    actions[joint_ids[i]] = term_action[i];
+                }
+            }
+            else
+            {
+                actions.insert(actions.end(), term_action.begin(), term_action.end());
+            }
         }
         return actions;
     }
 
+    /**
+     step() called by ManagerBasedRLEnv::step
+     process the raw action from RL policy
+     and distribute to each action term
+     */
     void process_action(std::vector<float> action)
     {
         _action = action;
@@ -90,7 +121,7 @@ public:
     int total_action_dim()
     {
         auto dims = action_dim();
-        
+
         return std::accumulate(dims.begin(), dims.end(), 0);
     }
 
@@ -110,6 +141,7 @@ public:
 private:
     void _prepare_terms()
     {
+        int idx = 0;
         for(auto it = this->cfg.begin(); it != this->cfg.end(); ++it)
         {
             std::string action_name = it->first.as<std::string>();
@@ -119,10 +151,21 @@ private:
             }
 
             auto term = actions_map()[action_name](it->second, env);
+
+            if (0 == idx)
+            {
+                _use_joint_ids = term->use_joint_ids();
+            }
+            else
+            {
+                assert (_use_joint_ids == term->use_joint_ids());
+            }
+            idx ++;
             _terms.push_back(std::move(term));
         }
     }
 
+    bool _use_joint_ids = false; // used for mapping action to trained env joint ids order
     std::vector<float> _action;
     std::vector<std::unique_ptr<ActionTerm>> _terms;
 };

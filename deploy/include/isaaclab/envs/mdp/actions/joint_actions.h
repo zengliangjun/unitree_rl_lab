@@ -22,6 +22,7 @@ public:
         } else {
             _joint_ids = cfg["joint_ids"].as<std::vector<int>>();
             _action_dim = _joint_ids.size();
+            _use_joint_ids = true;
         }
         _raw_actions.resize(_action_dim, 0.0f);
         _processed_actions.resize(_action_dim, 0.0f);
@@ -80,8 +81,19 @@ public:
         _raw_actions.assign(_action_dim, 0.0f);
     }
 
+    bool use_joint_ids()
+    {
+        return _use_joint_ids;
+    }
+
+    std::vector<int> joint_ids()
+    {
+        return _joint_ids;
+    }
+
 protected:
     int _action_dim;
+    bool _use_joint_ids = false; // used for mapping action to trained env joint ids order
     std::vector<int> _joint_ids;
 
     std::vector<float> _raw_actions;
