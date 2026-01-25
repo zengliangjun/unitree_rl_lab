@@ -4,12 +4,14 @@
 #pragma once
 
 #include "FSMState.h"
+#include "unitree_articulation.h"
+#include "isaaclab/assets/articulation/articulation.h"
 
 class State_Passive : public FSMState
 {
 public:
-    State_Passive(int state, std::string state_string = "Passive") 
-    : FSMState(state, state_string) 
+    State_Passive(int state, std::string state_string = "Passive")
+    : FSMState(state, state_string)
     {
         auto motor_mode = param::config["FSM"]["Passive"]["mode"];
         if(motor_mode.IsDefined())
@@ -20,7 +22,18 @@ public:
                 lowcmd->msg_.motor_cmd()[i].mode() = values[i];
             }
         }
-    } 
+
+        robot_ = std::make_shared<unitree::BaseArticulation<LowState_t::SharedPtr>>(FSMState::lowstate);
+
+        robot_->update();
+        {
+            std::string update_command = "RB + up.on_pressed";
+            unitree::common::dsl::Parser p(update_command);
+            auto ast = p.Parse();
+            auto func = unitree::common::dsl::Compile(*ast);
+            joystick_checks_ = [func]()->bool{ return func(FSMState::lowstate->joystick); };
+        }
+    }
 
     void enter()
     {
@@ -36,13 +49,36 @@ public:
         }
     }
 
+    void pre_run()
+    {
+        FSMState::pre_run();
+        robot_->update();
+        if (joystick_checks_()) {
+            dump_data_type ++;
+            dump_data_type = dump_data_type % 3;
+            std::cout << "dump_data_type: " << dump_data_type << std::endl;
+        }
+        if (dump_data_type == 1) {
+            std::cout << " ang_vel: " << robot_->data.root_ang_vel_b.transpose() <<
+                         " gravity_b: " << robot_->data.projected_gravity_b.transpose() <<
+                         " quat_w: " << robot_->data.root_quat_w << std::endl;
+        }
+    }
+
     void run()
     {
         for(int i(0); i < lowcmd->msg_.motor_cmd().size(); ++i)
         {
-            lowcmd->msg_.motor_cmd()[i].q() = lowstate->msg_.motor_state()[i].q();
+            lowcmd->msg_.motor_cmd()[i].q() = 12; // lowstate->msg_.motor_state()[i].q();
+            if (i == 0 && dump_data_type == 2) {
+                std::cout << " motor_cmd[0].q(): " << lowcmd->msg_.motor_cmd()[i].q() << std::endl;
+            }
         }
     }
+
+    int dump_data_type = -1;
+    std::function<bool()> joystick_checks_;
+    std::shared_ptr<isaaclab::Articulation> robot_;
 };
 
 REGISTER_FSM(State_Passive)

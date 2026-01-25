@@ -4,17 +4,23 @@ project(lyenbot_ctrl)
 find_package(Boost REQUIRED COMPONENTS program_options)
 find_package(yaml-cpp REQUIRED)
 
+set(UNITREE_ROOT "${PROJECT_SOURCE_DIR}/../../../../unitree_sdk2/")
+
 include_directories(
   /usr/include/eigen3
-  /usr/local/include/ddscxx # dds
-  /usr/local/include/iceoryx/v2.0.2 # dds
+  ${UNITREE_ROOT}/include
+  ${UNITREE_ROOT}/thirdparty/include
+  ${UNITREE_ROOT}/thirdparty/include/ddscxx
   include
   ${PROJECT_SOURCE_DIR}/../../thirdparty/onnxruntime-linux-x64-1.22.0/include
   ${PROJECT_SOURCE_DIR}/../../include/
 )
 
 link_libraries(
-  unitree_sdk2 ddsc ddscxx rt pthread # dds
+  ${UNITREE_ROOT}/lib/${CMAKE_SYSTEM_PROCESSOR}/libunitree_sdk2.a
+  ${UNITREE_ROOT}/thirdparty/lib/${CMAKE_SYSTEM_PROCESSOR}/libddsc.so
+  ${UNITREE_ROOT}/thirdparty/lib/${CMAKE_SYSTEM_PROCESSOR}/libddscxx.so
+  rt pthread # dds
   libboost_program_options.a libyaml-cpp.a fmt
   ${PROJECT_SOURCE_DIR}/../../thirdparty/onnxruntime-linux-x64-1.22.0/lib/libonnxruntime.so.1.22.0
 )
