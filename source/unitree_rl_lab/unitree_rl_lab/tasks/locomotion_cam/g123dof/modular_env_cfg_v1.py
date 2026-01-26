@@ -204,8 +204,8 @@ class CommandsCfg:
 @configclass
 class ActionsCfg:
     """Action specifications for the MDP."""
-    leg = mdp.JointPositionActionCfg(asset_name="robot", scale=0.25, joint_names=ROBOT_CFG.legs_joint_names) #! The order of the joints are not correct.
-    arm = mdp.JointPositionActionCfg(asset_name="robot", scale=0.25, joint_names=ROBOT_CFG.arms_joint_names) #! The order of the joints are not correct.
+    leg = mdp.JointPositionActionCfg(asset_name="robot", scale=0.25, joint_names=ROBOT_CFG.legs_joint_names, preserve_order = True) #! The order of the joints are not correct.
+    arm = mdp.JointPositionActionCfg(asset_name="robot", scale=0.25, joint_names=ROBOT_CFG.arms_joint_names, preserve_order = True) #! The order of the joints are not correct.
     # arm_joint_pos = mdp.JointPositionActionCfg(asset_name="robot", joint_names=HUMANOID_FULL_CFG.actuators['arms'].joint_names_expr, disable_action=True) #! The order of the joints are not correct.
 
 
@@ -221,9 +221,9 @@ class ObservationsCfg:
         projected_gravity = ObsTerm(func=mdp.projected_gravity, noise=Gnoise(std=0.05))
         velocity_commands = ObsTerm(func=mdp.generated_commands, params={"command_name": "base_velocity"})
 
-        joint_pos = ObsTerm(func=mdp.joint_pos, noise=Gnoise(std=0.05),
+        joint_pos_rel = ObsTerm(func=mdp.joint_pos_rel, noise=Gnoise(std=0.05),
                             params={"asset_cfg": SceneEntityCfg("robot")})
-        joint_vel = ObsTerm(func=mdp.joint_vel, scale=0.05, noise=Gnoise(std=1.0),
+        joint_vel_rel = ObsTerm(func=mdp.joint_vel_rel, scale=0.05, noise=Gnoise(std=1.0),
                             params={"asset_cfg": SceneEntityCfg("robot")})
         last_action = ObsTerm(func=mdp.last_action, noise=Gnoise(std=0.1))
 
@@ -241,9 +241,9 @@ class ObservationsCfg:
         projected_gravity = ObsTerm(func=mdp.projected_gravity)
         velocity_commands = ObsTerm(func=mdp.generated_commands, params={"command_name": "base_velocity"})
 
-        joint_pos = ObsTerm(func=mdp.joint_pos, noise=Gnoise(std=0.05),
+        joint_pos_rel = ObsTerm(func=mdp.joint_pos_rel, noise=Gnoise(std=0.05),
                             params={"asset_cfg": SceneEntityCfg("robot")})
-        joint_vel = ObsTerm(func=mdp.joint_vel, scale=0.05, noise=Gnoise(std=1.0),
+        joint_vel_rel = ObsTerm(func=mdp.joint_vel_rel, scale=0.05, noise=Gnoise(std=1.0),
                             params={"asset_cfg": SceneEntityCfg("robot")})
         last_action = ObsTerm(func=mdp.last_action, noise=Gnoise(std=0.1))
 
@@ -461,7 +461,7 @@ class RewardsCfg:
         )
         dCAM_xy = RewTerm(
             func=mdp.ArmCamDampingReward,
-            weight=5e-2,
+            weight=-3e-6,
             params={"asset_cfg": SceneEntityCfg("robot")}
         )
         tracking_CAM_reward = RewTerm(

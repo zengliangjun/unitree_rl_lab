@@ -33,11 +33,6 @@ cli_args.add_rsl_rl_args(parser)
 AppLauncher.add_app_launcher_args(parser)
 args_cli, hydra_args = parser.parse_known_args()
 
-args_cli.task = "Modular-G1-23dof-Velocity"
-args_cli.num_envs = 512
-args_cli.headless = True
-
-
 # always enable cameras to record video
 if args_cli.video:
     args_cli.enable_cameras = True

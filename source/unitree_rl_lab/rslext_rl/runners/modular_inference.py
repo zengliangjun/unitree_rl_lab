@@ -2,6 +2,7 @@ from torch import nn
 import torch
 from rsl_rl.modules import ActorCritic
 import copy
+import os
 import os.path as osp
 
 from isaaclab_rl.rsl_rl.exporter import _OnnxPolicyExporter, _TorchPolicyExporter
@@ -262,5 +263,6 @@ class ModularInference(nn.Module):
 
     def export_onnx(self, path, filename):
         module = OnnxExporter(self.leg_policy, self.arm_policy)
+        os.makedirs(path, exist_ok=True)
         full_path = osp.join(path, filename)
         module.export(full_path)

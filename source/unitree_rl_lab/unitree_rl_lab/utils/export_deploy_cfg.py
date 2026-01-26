@@ -85,7 +85,7 @@ def export_deploy_cfg(env: ManagerBasedRLEnv, log_dir):
         if term_cfg.clip is not None:
             term_cfg.clip = action_term._clip[0].detach().cpu().numpy().tolist()
 
-        if action_name in ["JointPositionAction", "JointVelocityAction"]:
+        if action_name in ["JointPositionAction", "JointVelocityAction", "leg", "arm"]:
             if term_cfg.use_default_offset:
                 term_cfg.offset = action_term._offset[0].detach().cpu().numpy().tolist()
             else:
@@ -126,7 +126,7 @@ def export_deploy_cfg(env: ManagerBasedRLEnv, log_dir):
 
         # clean cfg
         term_cfg = term_cfg.to_dict()
-        for _ in ["func", "modifiers", "noise", "flatten_history_dim"]:
+        for _ in ["func", "modifiers", "noise", "flatten_history_dim", "params"]:
             del term_cfg[_]
         cfg["observations"][obs_name] = term_cfg
 
