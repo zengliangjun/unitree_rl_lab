@@ -67,5 +67,7 @@ class ArmCamDampingReward(ManagerTermBase):
         # Eq.(9): -min(0, sum_{i=x,y} k_i * kdot_i) :contentReference[oaicite:11]{index=11}
         s = torch.sum(k_xy * kdot_xy, dim=-1)
         r = torch.clamp_min(s, 0.0,)
-        return r
+
+        valid_len = env.episode_length_buf > 50
+        return r * valid_len.float()
 

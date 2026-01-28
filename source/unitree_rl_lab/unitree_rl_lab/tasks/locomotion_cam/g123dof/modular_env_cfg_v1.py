@@ -277,6 +277,32 @@ class RewardsCfg:
             func=mdp.track_ang_vel_z_exp, weight=1.8, params={"command_name": "base_velocity", "std": math.sqrt(0.25)}
         )
 
+        reward_motion_lin_ang = RewTerm(
+            func=mdp.reward_mismatch_vel_exp,
+            weight=0.5,
+            params={"asset_cfg": SceneEntityCfg("robot"),
+                    "linear_weight": 10,
+                    "angle_weight": 5},
+        )
+        reward_motion_speed = RewTerm(
+            func=mdp.reward_mismatch_speed,
+            weight=0.2,
+            params={"command_name": "base_velocity",
+                    "asset_cfg": SceneEntityCfg("robot")},
+        )
+        '''
+        reward_motion_hard = RewTerm(
+            func=mdp.reward_track_vel_hard,
+            weight=0.5,
+            params={"command_name": "base_velocity",
+                    "asset_cfg": SceneEntityCfg("robot")},
+        )'''
+        reward_base_acc_exp_norm = RewTerm(
+            func=mdp.reward_base_acc,
+            weight=0.2,
+            params={"asset_cfg": SceneEntityCfg("robot")},
+        )
+
         alive = RewTerm(func=mdp.is_alive, weight=0.15)
         # -- base
         base_linear_velocity = RewTerm(func=mdp.lin_vel_z_l2, weight=-2.0)
@@ -359,15 +385,35 @@ class RewardsCfg:
             },
         )
         feet_clearance = RewTerm(
-            func=mdp.foot_clearance_reward,
-            weight=1.0,
+            func=mdp.feet_clearance,
+            weight=1,
             params={
-                "std": 0.05,
-                "tanh_mult": 2.0,
-                "target_height": 0.1,
                 "asset_cfg": SceneEntityCfg("robot", body_names=".*ankle_roll.*"),
+                "period": 0.8,
+                "offset": [0.0, 0.5],
+                "stand_threshold": 0.55,
+                "swing_height": 0.12,
+                "tracking_sigma": 0.008
             },
         )
+        reward_feet_air_time = RewTerm(
+            func=mdp.reward_feet_air_time,
+            weight=20,
+            params={
+                "sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*ankle_roll.*"),
+                "contacts_threshold": 5,
+                "period": 0.8,
+                "offset": [0.0, 0.5],
+                "stance_threshold": 0.55,
+                "command_name": "base_velocity",
+            },
+        )
+        feet_ori = RewTerm(func=mdp.penalty_feet_orientation,
+            weight=-5.0,
+            params={
+                "asset_cfg": SceneEntityCfg("robot", body_names=".*ankle_roll.*"),
+                }
+            )
         undesired_contacts = RewTerm(
             func=mdp.undesired_contacts,
             weight=-1,
@@ -461,7 +507,7 @@ class RewardsCfg:
         )
         dCAM_xy = RewTerm(
             func=mdp.ArmCamDampingReward,
-            weight=-3e-6,
+            weight= -3.0e-6,
             params={"asset_cfg": SceneEntityCfg("robot")}
         )
         tracking_CAM_reward = RewTerm(
@@ -470,7 +516,7 @@ class RewardsCfg:
             params={"asset_cfg": SceneEntityCfg("robot"), "command_name": "base_velocity"}
         )
 
-        alive = RewTerm(func=mdp.is_alive, weight=0.15)
+        alive = RewTerm(func=mdp.is_alive, weight=5)
 
     leg: LegRewardsCfg = LegRewardsCfg()
     arm: ArmRewardsCfg = ArmRewardsCfg()
@@ -524,7 +570,7 @@ class EnvCfg(manager_based_rl_env_cfg.ModuleRLEnvCfg):
     def __post_init__(self):
         """Post initialization."""
         self.decimation = 4
-        self.episode_length_s = 10
+        self.episode_length_s = 20
         # video recording settings
         # self.video_length_s = 3
         # simulation settings
@@ -555,6 +601,7 @@ class EnvCfg_PLAY(EnvCfg):
         super().__post_init__()
         # make a smaller scene for play
         self.scene.num_envs = 3
+        self.episode_length_s = 200
         self.scene.env_spacing = 2.5
         # spawn the robot randomly in the grid (instead of their terrain levels)
         self.scene.terrain.max_init_terrain_level = None
