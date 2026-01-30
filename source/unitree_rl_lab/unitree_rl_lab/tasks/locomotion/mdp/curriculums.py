@@ -102,3 +102,34 @@ def reward_weight_levels(
         reward_term.weight = min(reward_term.weight * (1 - degree), min_weight)
 
     return torch.tensor(- reward_term.weight, device=env.device)
+
+
+def reward_levels(
+    env: ManagerBasedRLEnv,
+    env_ids: Sequence[int],
+    group_name: str = None,
+    reward_term_name: str = "stand_deviation",
+    min_weight: float = -0.1,
+    max_weight: float = -3,
+    upper_threshold_length: float = 0.7,
+    lower_threshold_length: float = 0.3,
+    degree: float = 1e-3,
+) -> torch.Tensor:
+
+    if group_name is None:
+        reward_term = env.reward_manager.get_term_cfg(reward_term_name)
+    else:
+        reward_term = env.reward_manager.get_term_cfg(group_name = group_name, term_name = reward_term_name)
+
+    if env.common_step_counter % env.max_episode_length == 0:
+        command_term = env.command_manager.get_term("base_velocity")
+
+        episode_length = command_term.average_episode_length  / env.max_episode_length
+
+        if episode_length > upper_threshold_length:
+            reward_term.weight = max(reward_term.weight * (1 + degree), max_weight)
+
+        elif episode_length < lower_threshold_length:
+            reward_term.weight = min(reward_term.weight * (1 - degree), min_weight)
+
+    return torch.tensor(- reward_term.weight, device=env.device)
