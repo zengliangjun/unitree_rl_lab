@@ -12,6 +12,7 @@ include_directories(
   ${UNITREE_ROOT}/thirdparty/include
   ${UNITREE_ROOT}/thirdparty/include/ddscxx
   include
+  ${PROJECT_SOURCE_DIR}/../lyenbot/include
   ${PROJECT_SOURCE_DIR}/../../thirdparty/onnxruntime-linux-x64-1.22.0/include
   ${PROJECT_SOURCE_DIR}/../../include/
 )
@@ -27,6 +28,7 @@ link_libraries(
 
 file(GLOB_RECURSE ADD_SRC_LIST
   ${PROJECT_SOURCE_DIR}/src/*.cpp
+  ${PROJECT_SOURCE_DIR}/../lyenbot/src/State_Squat.cpp
 )
 
 add_library(${PROJECT_NAME}_lib ${ADD_SRC_LIST})

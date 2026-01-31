@@ -10,9 +10,13 @@ FSM:
     TienKung_Velocity:
       id: 4
       type: RLBase
+    Squat:
+      id: 101
+      type: Squat
   Passive:
     transitions:
       FixStand: LT + up.on_pressed
+      Squat: RB + Y.on_pressed
     mode: [
       1,1,1,1,1,1,
       1,1,1,1,1,1,
@@ -31,7 +35,8 @@ FSM:
     transitions:
       Passive: LT + B.on_pressed
       Velocity: RB + X.on_pressed
-      TienKung_Velocity: RB + Y.on_pressed
+      TienKung_Velocity: LT + Y.on_pressed
+      Squat: RB + Y.on_pressed
     kp: [
       100., 100., 100., 150., 40., 40.,
       100., 100., 100., 150., 40., 40.,
@@ -59,8 +64,17 @@ FSM:
   Velocity:
     transitions:
       Passive: LT + B.on_pressed
-    policy_dir: config/policy/g123dof_cam_unitree/2026-01-22_21-02-09
+    policy_dir: config/policy/unitree_g1_23dof_velocity/2025-12-28_11-32-28
   TienKung_Velocity:
     transitions:
       Passive: LT + B.on_pressed
     policy_dir: config/policy/TienKung/2025-12-27_18-35-04
+  Squat:
+    transitions:
+      # FixStand: LT + up.on_pressed
+      # Passive: LT + B.on_pressed
+      Velocity: RB + X.on_pressed
+    # policy_dir: config/policy/lyenbot_leg_squat/2026-01-15_20-32-26/
+    policy_dir: config/policy/g123dof_cam_squat/2026-01-31_09-31-43/
+    # policy_dir: config/policy/lyenbotleg_unitree_squat/2026-01-17_10-43-21
+
