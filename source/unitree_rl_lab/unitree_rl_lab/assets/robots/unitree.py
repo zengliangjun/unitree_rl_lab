@@ -418,6 +418,8 @@ UNITREE_G1_23DOF_CFG = UnitreeArticulationCfg(
         "right_elbow_joint",
         "right_wrist_roll_joint",
     ],
+    left_knee_name="left_knee_joint",
+    right_knee_name="right_knee_joint"
 )
 
 UNITREE_G1_29DOF_CFG = UnitreeArticulationCfg(

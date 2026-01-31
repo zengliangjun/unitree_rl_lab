@@ -38,9 +38,6 @@ args_cli = parser.parse_args()
 if args_cli.video:
     args_cli.enable_cameras = True
 
-args_cli.task = args_cli.task or "Unitree-G1-23dof-Velocity"
-args_cli.num_envs = args_cli.num_envs or 1
-# args_cli.headless = True
 
 # launch omniverse app
 app_launcher = AppLauncher(args_cli)
