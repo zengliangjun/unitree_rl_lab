@@ -5,6 +5,8 @@ from typing import TYPE_CHECKING
 
 from isaaclab.managers import SceneEntityCfg, ManagerTermBase, RewardTermCfg
 from isaaclab.assets import Articulation
+from unitree_rl_lab.tasks.squat.mdp import command_squat
+
 
 from unitree_rl_lab.tasks.locomotion_cam.mdp import cam_utils
 
@@ -13,8 +15,11 @@ if TYPE_CHECKING:
 
 
 def armCamTrackingReward(env: ManagerBasedRLEnv,
+                command_name: str,
                 asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
                 sigma :float = 0.25) -> torch.Tensor:
+
+    command: command_squat.SquatCommand = env.command_manager.get_term(command_name)
 
     asset: Articulation = env.scene[asset_cfg.name]
     cmd = torch.zeros((env.num_envs, 3), device=env.device)  # (B,3) = [vx,vy,wz]
@@ -32,8 +37,10 @@ def armCamTrackingReward(env: ManagerBasedRLEnv,
 
     err = (kz_hat - kz) / (1.0 + torch.abs(kz_hat))
     r = torch.exp(- torch.square(err * 2) / sigma)
-    return r
 
+    # only for dynamic
+    # r[command.is_finished_flags] = 0
+    return r
 
 class ArmCamDampingReward(ManagerTermBase):
     """r_dCAM in Eq.(9)."""
@@ -50,7 +57,10 @@ class ArmCamDampingReward(ManagerTermBase):
             self.prev_cam_xy[env_ids] = 0.0
 
     def __call__(self, env: ManagerBasedRLEnv,
+                command_name: str,
                 asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")) -> torch.Tensor:
+
+        command: command_squat.SquatCommand = env.command_manager.get_term(command_name)
 
         asset: Articulation = env.scene[asset_cfg.name]
         M_com = cam_utils.compute_com_mass_matrix_baseframe(asset, env)
@@ -66,5 +76,8 @@ class ArmCamDampingReward(ManagerTermBase):
         # Eq.(9): -min(0, sum_{i=x,y} k_i * kdot_i) :contentReference[oaicite:11]{index=11}
         s = torch.sum(k_xy * kdot_xy, dim=-1)
         r = torch.clamp_min(s, 0.0,)
+
+        # only for dynamic
+        # r[command.is_finished_flags] = 0
         return torch.sqrt(r)
 

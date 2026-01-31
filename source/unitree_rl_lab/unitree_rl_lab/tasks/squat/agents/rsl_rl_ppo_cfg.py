@@ -39,3 +39,15 @@ class BasePPORunnerCfg(RslRlOnPolicyRunnerCfg):
     def __post_init__(self):
         super().__post_init__()
         self.policy.layer_norm = True
+
+@configclass
+class BasePPORunnerCfgV1(BasePPORunnerCfg):
+    def __post_init__(self):
+        super().__post_init__()
+        self.policy.noise_std_type="log"
+
+        self.policy.actor_hidden_dims=[512, 512, 256]
+        self.policy.critic_hidden_dims=[512,512, 256]
+        self.algorithm.gamma=0.99
+        self.algorithm.learning_rate=3.0e-6
+        self.empirical_normalization = True

@@ -171,7 +171,7 @@ class EventCfg:
 @configclass
 class CommandsCfg:
     """Command specifications for the MDP."""
-    suqat_command = command_squat_cfg.SuqatCommandCfg(
+    squat_command = command_squat_cfg.SquatCommandCfg(
         asset_cfg = SceneEntityCfg( "robot",
                 joint_names=[
                     ".*_knee_.*",
@@ -180,21 +180,21 @@ class CommandsCfg:
 
         resampling_time_range=(13, 13),
         rel_reset_init_envs=0.2,
-        rel_compute_init_envs=0.2,
-        rel_compute_max_envs=0.2,
+        rel_compute_init_envs=0.25,
+        rel_compute_max_envs=0.25,
 
-        ranges=command_squat_cfg.SuqatCommandCfg.Ranges(
-            suqat_phase = (- math.pi * 34 / 64, 0.8599),
+        ranges=command_squat_cfg.SquatCommandCfg.Ranges(
+            squat_phase = (- math.pi * 31 / 64, 0.8599),
             full_times = (4, 6.5)
         ),
 
-        max_limit_ranges=command_squat_cfg.SuqatCommandCfg.Ranges(
-            suqat_phase = ( - math.pi * 31 / 64, 0.8599),
+        max_limit_ranges=command_squat_cfg.SquatCommandCfg.Ranges(
+            squat_phase = ( - math.pi * 31 / 64, 0.8599),
             full_times = (1.2, 6.5)
         ),
 
-        min_limit_ranges=command_squat_cfg.SuqatCommandCfg.Ranges(
-            suqat_phase = (0.125 * math.pi, 0.25 * math.pi),
+        min_limit_ranges=command_squat_cfg.SquatCommandCfg.Ranges(
+            squat_phase = (0.125 * math.pi, 0.25 * math.pi),
             full_times = (4, 4.5)
         )
 
@@ -221,7 +221,7 @@ class ObservationsCfg:
         # observation terms (order preserved)
         base_ang_vel = ObsTerm(func=mdp.base_ang_vel, scale=0.2, noise=Unoise(n_min=-0.2, n_max=0.2))
         projected_gravity = ObsTerm(func=mdp.projected_gravity, noise=Unoise(n_min=-0.05, n_max=0.05))
-        squat_commands = ObsTerm(func=observations.suqat_command, params={"command_name": "suqat_command"})
+        squat_commands = ObsTerm(func=observations.squat_command, params={"command_name": "squat_command"})
         joint_pos_rel = ObsTerm(func=mdp.joint_pos_rel, noise=Unoise(n_min=-0.01, n_max=0.01))
         joint_vel_rel = ObsTerm(func=mdp.joint_vel_rel, scale=0.05, noise=Unoise(n_min=-1.5, n_max=1.5))
         last_action = ObsTerm(func=mdp.last_action)
@@ -240,7 +240,7 @@ class ObservationsCfg:
         base_lin_vel = ObsTerm(func=mdp.base_lin_vel)
         base_ang_vel = ObsTerm(func=mdp.base_ang_vel, scale=0.2)
         projected_gravity = ObsTerm(func=mdp.projected_gravity)
-        squat_commands = ObsTerm(func=observations.suqat_command, params={"command_name": "suqat_command"})
+        squat_commands = ObsTerm(func=observations.squat_command, params={"command_name": "squat_command"})
         joint_pos_rel = ObsTerm(func=mdp.joint_pos_rel)
         joint_vel_rel = ObsTerm(func=mdp.joint_vel_rel, scale=0.05)
         last_action = ObsTerm(func=mdp.last_action)
@@ -260,7 +260,7 @@ class RewardsCfg:
     track_squat_pos = RewTerm(
         func=rewards.track_squat_pos_exp,
         weight=2.5,
-        params={"command_name": "suqat_command",
+        params={"command_name": "squat_command",
                 "std": math.sqrt(0.01),
                 "asset_cfg": SceneEntityCfg("robot",
                     joint_names=[
@@ -271,7 +271,7 @@ class RewardsCfg:
     penalty_squat_pos = RewTerm(
         func=rewards.track_squat_error,
         weight=- 1e-3,
-        params={"command_name": "suqat_command",
+        params={"command_name": "squat_command",
                 "finished_weight": 1,
                 "finished_max_weight": 2,
                 "penalty_weight": 1,
@@ -305,7 +305,7 @@ class RewardsCfg:
         func=rewards.reward_pitch2zero,
         weight=0.10,
         params={"std": 0.25,
-                "command_name": "suqat_command",
+                "command_name": "squat_command",
                 "asset_cfg":
                 SceneEntityCfg("robot",
                     joint_names=[
@@ -319,10 +319,12 @@ class RewardsCfg:
                     preserve_order=True)},
     )
 
+    # only for static is com is zero
     com_zero = RewTerm(
         func=rewards.com_zero,
-        weight=0.5,
+        weight=5,
         params={"std": 0.12,
+                "command_name": "squat_command",
                 "asset_cfg":
                 SceneEntityCfg("robot",
                     body_names=[
@@ -333,7 +335,7 @@ class RewardsCfg:
     )
     zero_ang_vel = RewTerm(
         func=rewards.reward_zero_ang_vel_exp_v1,
-        weight=0.4,
+        weight=0.8,
         params={"finished_weight": 3, "std": 0.25}
     )
     zero_lin_xy_vel = RewTerm(
@@ -342,7 +344,7 @@ class RewardsCfg:
         params={"finished_weight": 3, "std": 0.25}
     )
 
-    alive = RewTerm(func=mdp.is_alive, weight=0.07)
+    alive = RewTerm(func=mdp.is_alive, weight=0.13)
 
     joint_vel = RewTerm(func=rewards.joint_vel_l2, weight=-0.01,
         params={"finished_weight": 3} )
@@ -434,7 +436,7 @@ class RewardsCfg:
     )
     termination_penalty = RewTerm(
         func=mdp.is_terminated,
-        weight=-100.0,
+        weight=-330.0,
     )
 
 @configclass
@@ -450,13 +452,13 @@ class CurriculumCfg:
     """Curriculum terms for the MDP."""
     squat_levels = CurrTerm(func=curriculums.squat_cmd_levels,
         params={
-                "command_term_name": "suqat_command",
+                "command_term_name": "squat_command",
                 "reward_term_name": "track_squat_pos",
             })
 
     push_levels = CurrTerm(func=curriculums.squat_push_levels,
         params={
-                "command_term_name": "suqat_command",
+                "command_term_name": "squat_command",
                 "event_term_name": "push_robot",
                 "reward_term_name": "track_squat_pos",
             })
@@ -515,6 +517,6 @@ class RobotPlayEnvCfg(RobotEnvCfg):
         self.scene.terrain.terrain_generator.border_width=2.0
         self.scene.terrain.terrain_generator.num_rows=1
         self.scene.terrain.terrain_generator.num_cols=1
-        self.commands.suqat_command.ranges = self.commands.suqat_command.max_limit_ranges
+        self.commands.squat_command.ranges = self.commands.squat_command.max_limit_ranges
         self.events.push_robot = None
         self.curriculum = None

@@ -13,10 +13,10 @@ if TYPE_CHECKING:
 def squat_cmd_levels(
     env: ManagerBasedRLEnv,
     env_ids: Sequence[int],
-    command_term_name: str = "suqat_command",
+    command_term_name: str = "squat_command",
     reward_term_name: str = "track_squat_pos",
 ) -> torch.Tensor:
-    command_term: command_squat.SuqatCommand = env.command_manager.get_term(command_term_name)
+    command_term: command_squat.SquatCommand = env.command_manager.get_term(command_term_name)
     ranges = command_term.cfg.ranges
     max_limit_ranges = command_term.cfg.max_limit_ranges
     min_limit_ranges = command_term.cfg.min_limit_ranges
@@ -37,11 +37,11 @@ def squat_cmd_levels(
 def squat_cmd_levels_v1(
     env: ManagerBasedRLEnv,
     env_ids: Sequence[int],
-    command_term_name: str = "suqat_command",
+    command_term_name: str = "squat_command",
     reward_term_name: str = "track_squat_pos",
     penalty_term_name: str = "penalty_squat_pos",
 ) -> torch.Tensor:
-    command_term: command_squat.SuqatCommand = env.command_manager.get_term(command_term_name)
+    command_term: command_squat.SquatCommand = env.command_manager.get_term(command_term_name)
     ranges = command_term.cfg.ranges
     max_limit_ranges = command_term.cfg.max_limit_ranges
     min_limit_ranges = command_term.cfg.min_limit_ranges
@@ -95,10 +95,10 @@ def squat_cmd_levels_v1(
 
         '''
         if reward < reward_term.weight * 0.2:
-            suqat_min = min(ranges.suqat_phase[0] + 0.05, min_limit_ranges.suqat_phase[0])
-            suqat_max = max(ranges.suqat_phase[1] - 0.05, min_limit_ranges.suqat_phase[1])
+            squat_min = min(ranges.squat_phase[0] + 0.05, min_limit_ranges.squat_phase[0])
+            squat_max = max(ranges.squat_phase[1] - 0.05, min_limit_ranges.squat_phase[1])
 
-            ranges.suqat_phase = [suqat_min, suqat_max]
+            ranges.squat_phase = [squat_min, squat_max]
 
             times_min = min(ranges.full_times[0] + 0.05, min_limit_ranges.full_times[0])
             times_max = max(ranges.full_times[1] - 0.05, min_limit_ranges.full_times[1])
@@ -112,12 +112,12 @@ def squat_cmd_levels_v1(
 def squat_push_levels(
     env: ManagerBasedRLEnv,
     env_ids: Sequence[int],
-    command_term_name: str = "suqat_command",
+    command_term_name: str = "squat_command",
     event_term_name: str = "push_robot",
     reward_term_name: str = "track_squat_pos",
 ) -> torch.Tensor:
 
-    command_term: command_squat.SuqatCommand = env.command_manager.get_term(command_term_name)
+    command_term: command_squat.SquatCommand = env.command_manager.get_term(command_term_name)
 
     action_term: EventTermCfg = env.event_manager.get_term_cfg(event_term_name)
     ranges: dict = action_term.params["velocity_range"]
@@ -144,10 +144,10 @@ def squat_push_levels(
 
         '''
         if reward < reward_term.weight * 0.2:
-            suqat_min = min(ranges.suqat_phase[0] + 0.05, min_limit_ranges.suqat_phase[0])
-            suqat_max = max(ranges.suqat_phase[1] - 0.05, min_limit_ranges.suqat_phase[1])
+            squat_min = min(ranges.squat_phase[0] + 0.05, min_limit_ranges.squat_phase[0])
+            squat_max = max(ranges.squat_phase[1] - 0.05, min_limit_ranges.squat_phase[1])
 
-            ranges.suqat_phase = [suqat_min, suqat_max]
+            ranges.squat_phase = [squat_min, squat_max]
 
             times_min = min(ranges.full_times[0] + 0.05, min_limit_ranges.full_times[0])
             times_max = max(ranges.full_times[1] - 0.05, min_limit_ranges.full_times[1])

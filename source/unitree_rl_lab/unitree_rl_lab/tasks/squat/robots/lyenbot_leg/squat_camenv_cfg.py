@@ -28,7 +28,7 @@ class RewardsCfg(squat_env_cfg.RewardsCfg):
     penalty_squat_pos = RewTerm(
         func=rewards.track_squat_error,
         weight=- 1e-3,
-        params={"command_name": "suqat_command",
+        params={"command_name": "squat_command",
                 "finished_weight": 1.6,
                 "finished_max_weight": 2.4,
                 "penalty_weight": 1,

@@ -20,7 +20,7 @@ def track_squat_pos_exp(
     asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
 ) -> torch.Tensor:
 
-    command: command_squat.SuqatCommand = env.command_manager.get_term(command_name)
+    command: command_squat.SquatCommand = env.command_manager.get_term(command_name)
     asset: Articulation = env.scene[asset_cfg.name]
     pos_error = command.command_pos - asset.data.joint_pos[:, asset_cfg.joint_ids]
     pos_error = torch.abs(pos_error / std)
@@ -34,7 +34,7 @@ def track_squat_error(
     asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
 ) -> torch.Tensor:
 
-    command: command_squat.SuqatCommand = env.command_manager.get_term(command_name)
+    command: command_squat.SquatCommand = env.command_manager.get_term(command_name)
     asset: Articulation = env.scene[asset_cfg.name]
     pos_error = command.command_pos - asset.data.joint_pos[:, asset_cfg.joint_ids]
 
@@ -89,14 +89,15 @@ def reward_pitch2zero(
     asset: Articulation = env.scene[asset_cfg.name]
     joint_pos = asset.data.joint_pos[:, asset_cfg.joint_ids]
 
-    command: command_squat.SuqatCommand = env.command_manager.get_term(command_name)
+    command: command_squat.SquatCommand = env.command_manager.get_term(command_name)
 
-    pitch_compensation = torch.pow(0.5 -  command.suqat_phase[:, 0] / torch.pi, 2) * std
+    # pitch_compensation = torch.pow(0.5 -  command.squat_phase[:, 0] / torch.pi, 2) * std
+    pitch_compensation = torch.abs(0.5 -  command.squat_phase[:, 0] / torch.pi) * std
 
     # left = torch.abs((torch.sum(joint_pos[:, 0::2], dim = -1) + pitch_compensation) / std)
     # right = torch.abs((torch.sum(joint_pos[:, 1::2], dim = -1) + pitch_compensation) / std)
-    left = torch.square((torch.sum(joint_pos[:, 0::2], dim = -1) + pitch_compensation) / std)
-    right = torch.square((torch.sum(joint_pos[:, 1::2], dim = -1) + pitch_compensation) / std)
+    left = torch.square((torch.sum(joint_pos[:, 0::2], dim = -1) + pitch_compensation) / (std * 0.4))
+    right = torch.square((torch.sum(joint_pos[:, 1::2], dim = -1) + pitch_compensation) / (std * 0.4))
 
     return torch.exp(- left) + torch.exp(- right)
 
@@ -115,9 +116,12 @@ def reward_pitch_forward_sing(
 
 def com_zero(
         env: ManagerBasedRLEnv,
-        std: float,
-        asset_cfg: SceneEntityCfg
+        asset_cfg: SceneEntityCfg,
+        command_name: str,
+        std: float
     ) -> torch.Tensor:
+
+    command: command_squat.SquatCommand = env.command_manager.get_term(command_name)
 
     std = max(std, 0.1)
 
@@ -165,6 +169,8 @@ def com_zero(
 
     total_reward = dist_reward * range_reward
 
+    # only for static
+    total_reward[command.is_finished_flags == 0] = 0
     return total_reward
 
 def contact_same_force(
@@ -194,12 +200,12 @@ def reward_zero_ang_vel_exp(
     return reward
 
 def reward_zero_ang_vel_exp_v1(
-    env: ManagerBasedRLEnv, std: float, command_name: str = "suqat_command",
+    env: ManagerBasedRLEnv, std: float, command_name: str = "squat_command",
     finished_weight: float = 20, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
 ) -> torch.Tensor:
     """Reward tracking of angular velocity commands (yaw) using exponential kernel."""
     # extract the used quantities (to enable type-hinting)
-    command: command_squat.SuqatCommand = env.command_manager.get_term(command_name)
+    command: command_squat.SquatCommand = env.command_manager.get_term(command_name)
     asset: Articulation = env.scene[asset_cfg.name]
     # ang_vel_error = torch.sum(torch.square(asset.data.root_ang_vel_b / std), dim = 1)
     ang_vel_error = torch.norm(asset.data.root_ang_vel_b / std, dim = 1)
@@ -220,13 +226,25 @@ def reward_zero_lin_vel_xy_exp(
     reward = torch.exp(-lin_xy_error)
     return reward
 
+def penalty_lin_vel_z_v1(
+    env: ManagerBasedRLEnv, command_name: str = "squat_command",
+    asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
+) -> torch.Tensor:
+    """Reward tracking of linear velocity commands (xy axes) using exponential kernel."""
+    command: command_squat.SquatCommand = env.command_manager.get_term(command_name)
+    asset: Articulation = env.scene[asset_cfg.name]
+    # compute the error
+    lin_z_error = torch.abs(asset.data.root_lin_vel_w[:, 2])
+    lin_z_error[command.is_finished_flags == 0] = 0
+    return lin_z_error
+
 def reward_zero_lin_vel_xy_exp_v1(
-    env: ManagerBasedRLEnv, std: float, command_name: str = "suqat_command",
+    env: ManagerBasedRLEnv, std: float, command_name: str = "squat_command",
     finished_weight: float = 20, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
 ) -> torch.Tensor:
     """Reward tracking of linear velocity commands (xy axes) using exponential kernel."""
     # extract the used quantities (to enable type-hinting)
-    command: command_squat.SuqatCommand = env.command_manager.get_term(command_name)
+    command: command_squat.SquatCommand = env.command_manager.get_term(command_name)
     asset: Articulation = env.scene[asset_cfg.name]
     # compute the error
     # lin_vel_error = torch.sum(torch.square(asset.data.root_lin_vel_b[:, :2] / std), dim = 1)
@@ -238,38 +256,38 @@ def reward_zero_lin_vel_xy_exp_v1(
     return reward - lin_xy_error * 0.25
 
 
-def joint_vel_l2(env: ManagerBasedRLEnv, command_name: str = "suqat_command", finished_weight: float = 20,
+def joint_vel_l2(env: ManagerBasedRLEnv, command_name: str = "squat_command", finished_weight: float = 20,
                  asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")) -> torch.Tensor:
     """Penalize joint velocities on the articulation using L2 squared kernel.
 
     NOTE: Only the joints configured in :attr:`asset_cfg.joint_ids` will have their joint velocities contribute to the term.
     """
     # extract the used quantities (to enable type-hinting)
-    command: command_squat.SuqatCommand = env.command_manager.get_term(command_name)
+    command: command_squat.SquatCommand = env.command_manager.get_term(command_name)
     asset: Articulation = env.scene[asset_cfg.name]
     penalty = torch.sum(torch.square(asset.data.joint_vel[:, asset_cfg.joint_ids]), dim=1)
     penalty[command.is_finished_flags] *=  finished_weight
     return penalty
 
 
-def joint_acc_l2(env: ManagerBasedRLEnv, command_name: str = "suqat_command", finished_weight: float = 20,
+def joint_acc_l2(env: ManagerBasedRLEnv, command_name: str = "squat_command", finished_weight: float = 20,
                  asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")) -> torch.Tensor:
     """Penalize joint accelerations on the articulation using L2 squared kernel.
 
     NOTE: Only the joints configured in :attr:`asset_cfg.joint_ids` will have their joint accelerations contribute to the term.
     """
     # extract the used quantities (to enable type-hinting)
-    command: command_squat.SuqatCommand = env.command_manager.get_term(command_name)
+    command: command_squat.SquatCommand = env.command_manager.get_term(command_name)
     asset: Articulation = env.scene[asset_cfg.name]
     penalty = torch.sum(torch.square(asset.data.joint_acc[:, asset_cfg.joint_ids]), dim=1)
     penalty[command.is_finished_flags] *=  finished_weight
     return penalty
 
 
-def energy(env: ManagerBasedRLEnv, command_name: str = "suqat_command", finished_weight: float = 20,
+def energy(env: ManagerBasedRLEnv, command_name: str = "squat_command", finished_weight: float = 20,
            asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")) -> torch.Tensor:
     """Penalize the energy used by the robot's joints."""
-    command: command_squat.SuqatCommand = env.command_manager.get_term(command_name)
+    command: command_squat.SquatCommand = env.command_manager.get_term(command_name)
     asset: Articulation = env.scene[asset_cfg.name]
 
     qvel = asset.data.joint_vel[:, asset_cfg.joint_ids]

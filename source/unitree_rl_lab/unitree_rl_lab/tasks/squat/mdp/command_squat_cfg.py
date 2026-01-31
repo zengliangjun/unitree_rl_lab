@@ -7,9 +7,9 @@ from isaaclab.managers import CommandTermCfg, SceneEntityCfg
 from . import command_squat
 
 @configclass
-class SuqatCommandCfg(CommandTermCfg):
+class SquatCommandCfg(CommandTermCfg):
 
-    class_type: type = command_squat.SuqatCommand
+    class_type: type = command_squat.SquatCommand
     asset_cfg: SceneEntityCfg = MISSING
 
     rel_reset_init_envs: float = 0.5
@@ -19,7 +19,7 @@ class SuqatCommandCfg(CommandTermCfg):
     @configclass
     class Ranges:
         # knee_pos: tuple[float, float] = MISSING
-        suqat_phase: tuple[float, float] = MISSING
+        squat_phase: tuple[float, float] = MISSING
         full_times: tuple[float, float] = MISSING
 
     ranges: Ranges = MISSING
