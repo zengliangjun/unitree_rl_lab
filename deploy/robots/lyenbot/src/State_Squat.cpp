@@ -26,7 +26,7 @@ State_Squat::State_Squat(int state_mode, std::string state_string)
 
     /** State_RLBase  */
     {
-        std::string update_command = env->cfg["commands"]["suqat_command"]["update_command"].as<std::string>(); // "RT + Y.on_pressed";
+        std::string update_command = env->cfg["commands"]["squat_command"]["update_command"].as<std::string>(); // "RT + Y.on_pressed";
         unitree::common::dsl::Parser p(update_command);
         auto ast = p.Parse();
         auto func = unitree::common::dsl::Compile(*ast);
@@ -34,7 +34,7 @@ State_Squat::State_Squat(int state_mode, std::string state_string)
     }
 
     {
-        std::string update_time = env->cfg["commands"]["suqat_command"]["update_time"].as<std::string>(); // "RT + X.on_pressed";
+        std::string update_time = env->cfg["commands"]["squat_command"]["update_time"].as<std::string>(); // "RT + X.on_pressed";
         unitree::common::dsl::Parser p(update_time);
         auto ast = p.Parse();
         auto func = unitree::common::dsl::Compile(*ast);
@@ -42,8 +42,8 @@ State_Squat::State_Squat(int state_mode, std::string state_string)
     }
 
     // for squat
-    env->robot->data.left_knee_id = env->cfg["commands"]["suqat_command"]["left_knee_id"].as<int>(); // 3;
-    env->robot->data.right_knee_id = env->cfg["commands"]["suqat_command"]["right_knee_id"].as<int>(); // 9;
+    env->robot->data.left_knee_id = env->cfg["commands"]["squat_command"]["left_knee_id"].as<int>(); // 3;
+    env->robot->data.right_knee_id = env->cfg["commands"]["squat_command"]["right_knee_id"].as<int>(); // 9;
 
     // _resample_init_compute();
 }
@@ -54,9 +54,9 @@ void State_Squat::_resample_init_compute() {
     int right_knee_id = env->robot->data.right_knee_id;
 
     // command
-    const auto cfg = env->cfg["commands"]["suqat_command"]["ranges"];
-    float suqat_command_phase = cfg["suqat_phase"][1].as<float>();
-    env->robot->data.suqat_command_phase = suqat_command_phase;
+    const auto cfg = env->cfg["commands"]["squat_command"]["ranges"];
+    float squat_command_phase = cfg["squat_phase"][1].as<float>();
+    env->robot->data.squat_command_phase = squat_command_phase;
 
 
     // phase_vel
@@ -68,28 +68,28 @@ void State_Squat::_resample_init_compute() {
     float pos = (env->robot->data.joint_pos[left_knee_id] + \
         env->robot->data.joint_pos[right_knee_id]) / 2;
 
-    float pos_phase = asin((env->cfg["commands"]["suqat_command"]["cpos"].as<float>() - pos) / \
-        env->cfg["commands"]["suqat_command"]["rad"].as<float>());
+    float sin = (env->cfg["commands"]["squat_command"]["cpos"].as<float>() - pos) / \
+        env->cfg["commands"]["squat_command"]["rad"].as<float>();
+
+    sin = std::clamp(sin, -1.0f, 1.0f);
+    float pos_phase = asin(sin);
     env->robot->data.pos_phase = pos_phase;
 
     /*
-    std::cout << "init: command_phase: cpos " << env->cfg["commands"]["suqat_command"]["cpos"].as<float>() \
-                                         << " rad:  " << env->cfg["commands"]["suqat_command"]["rad"].as<float>() \
+    std::cout << "init: command_phase: cpos " << env->cfg["commands"]["squat_command"]["cpos"].as<float>() \
+                                         << " rad:  " << env->cfg["commands"]["squat_command"]["rad"].as<float>() \
                                          << " left:  " << left_knee_id  \
                                          << " right:  " << right_knee_id  \
                                          << " pos:  " << pos << std::endl;
 
     std::cout << "joint_pos:  " << env->robot->data.joint_pos << std::endl;
     */
-
-
-
-    if (pos_phase > suqat_command_phase) {
+    if (pos_phase > squat_command_phase) {
         phase_vel = - phase_vel;
     }
     env->robot->data.phase_vel = phase_vel;
 
-    std::cout << "init: command_phase: " << suqat_command_phase << " pos_phase:  " << pos_phase << "  phase_vel:  " << phase_vel << std::endl;
+    std::cout << "init: command_phase: " << squat_command_phase << " pos_phase:  " << pos_phase << "  phase_vel:  " << phase_vel << std::endl;
 }
 
 void State_Squat::_resample_compute() {
@@ -98,12 +98,12 @@ void State_Squat::_resample_compute() {
 
     auto & joystick = env->robot->data.joystick;
 
-    const auto cfg = env->cfg["commands"]["suqat_command"]["ranges"]["suqat_phase"];
+    const auto cfg = env->cfg["commands"]["squat_command"]["ranges"]["squat_phase"];
 
     // command
-    float suqat_command_phase = joystick->ly() * M_PI / 2;
-    suqat_command_phase = std::clamp(suqat_command_phase, cfg[0].as<float>(), cfg[1].as<float>());
-    env->robot->data.suqat_command_phase = suqat_command_phase;
+    float squat_command_phase = joystick->ly() * M_PI / 2;
+    squat_command_phase = std::clamp(squat_command_phase, cfg[0].as<float>(), cfg[1].as<float>());
+    env->robot->data.squat_command_phase = squat_command_phase;
 
     // phase_vel
     // float times = (cfg["full_times"][0].as<float>() + cfg["full_times"][1].as<float>()) / 2;
@@ -112,15 +112,19 @@ void State_Squat::_resample_compute() {
     // phase
     float pos = (env->robot->data.joint_pos[left_knee_id] + \
         env->robot->data.joint_pos[right_knee_id]) / 2;
-    float pos_phase = asin((env->cfg["commands"]["suqat_command"]["cpos"].as<float>() - pos) / \
-        env->cfg["commands"]["suqat_command"]["rad"].as<float>());
+
+    float sin = (env->cfg["commands"]["squat_command"]["cpos"].as<float>() - pos) / \
+        env->cfg["commands"]["squat_command"]["rad"].as<float>();
+
+    sin = std::clamp(sin, -1.0f, 1.0f);
+    float pos_phase = asin(sin);
     env->robot->data.pos_phase = pos_phase;
 
-    if (pos_phase > suqat_command_phase) {
+    if (pos_phase > squat_command_phase) {
         phase_vel = - phase_vel;
     }
     env->robot->data.phase_vel = phase_vel;
-    std::cout << "resample: command_phase: " << suqat_command_phase << " pos_phase:  " << pos_phase << "  phase_vel:  " << phase_vel << std::endl;
+    std::cout << "resample: command_phase: " << squat_command_phase << " pos_phase:  " << pos_phase << "  phase_vel:  " << phase_vel << std::endl;
 }
 
 void State_Squat::pre_run()
@@ -132,7 +136,7 @@ void State_Squat::pre_run()
     }
     if (update_time_checks()) {
         auto & joystick = env->robot->data.joystick;
-        const auto cfg = env->cfg["commands"]["suqat_command"]["ranges"]["full_times"];
+        const auto cfg = env->cfg["commands"]["squat_command"]["ranges"]["full_times"];
         float min = cfg[0].as<float>();
         float max = cfg[1].as<float>();
         float time = (joystick->ly() + 1) / 2 * (max - min) + min;

@@ -46,7 +46,7 @@ struct ArticulationData
     int left_knee_id = 3;
     int right_knee_id = 9;
 
-    float suqat_command_phase = 0;
+    float squat_command_phase = 0;
     float pos_phase = 0;
     float phase_vel = 0;
     float full_time = 0;
