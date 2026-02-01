@@ -78,24 +78,22 @@ def track_constraint_width(
     # 将偏差放大（乘以 100），计算其指数惩罚，最后求所有对的平均值作为最终 reward
     return - torch.norm(error, dim=-1) + torch.norm(torch.exp(- error), dim = -1)
 
-
 def reward_pitch2zero(
     env: ManagerBasedRLEnv,
     asset_cfg: SceneEntityCfg,
     command_name: str,
     std: float = 0.25
 ) -> torch.Tensor:
+    # 相位计算（与 reward_orientation 相同）
+    command: command_squat.SquatCommand = env.command_manager.get_term(command_name)
+    phase = (command.squat_phase + (0.5 * torch.pi  - command.init_phase)) / torch.pi
+    phase = torch.clamp_max(phase, max = 0.5)
+    pitch_compensation = torch.abs(0.5 -  phase[:, 0]) * std
 
     asset: Articulation = env.scene[asset_cfg.name]
     joint_pos = asset.data.joint_pos[:, asset_cfg.joint_ids]
 
-    command: command_squat.SquatCommand = env.command_manager.get_term(command_name)
-
-    # pitch_compensation = torch.pow(0.5 -  command.squat_phase[:, 0] / torch.pi, 2) * std
-    pitch_compensation = torch.abs(0.5 -  command.squat_phase[:, 0] / torch.pi) * std
-
-    # left = torch.abs((torch.sum(joint_pos[:, 0::2], dim = -1) + pitch_compensation) / std)
-    # right = torch.abs((torch.sum(joint_pos[:, 1::2], dim = -1) + pitch_compensation) / std)
+    # 左右腿关节位置求和
     left = torch.square((torch.sum(joint_pos[:, 0::2], dim = -1) + pitch_compensation) / (std * 0.4))
     right = torch.square((torch.sum(joint_pos[:, 1::2], dim = -1) + pitch_compensation) / (std * 0.4))
 
@@ -132,11 +130,11 @@ def com_zero(
 
     try:
         pos_b = math_utils.quat_apply_inverse(quat_w, pos)
-        pos = torch.mean(pos_b[:, :, :2], dim=1)
+        # pos = torch.mean(pos_b[:, :, :2], dim=1)
         com_b = math_utils.quat_apply_inverse(asset.data.root_link_quat_w, asset.data.root_com_pos_w)
     except:
         pos_b = math_utils.quat_rotate_inverse(quat_w, pos)
-        pos = torch.mean(pos_b[:, :, :2], dim=1)
+        # pos = torch.mean(pos_b[:, :, :2], dim=1)
         com_b = math_utils.quat_rotate_inverse(asset.data.root_link_quat_w, asset.data.root_com_pos_w)
 
     left_ankle = pos_b[:, 0, :2]
@@ -296,5 +294,39 @@ def energy(env: ManagerBasedRLEnv, command_name: str = "squat_command", finished
     penalty[command.is_finished_flags] *=  finished_weight
     return penalty
 
+def reward_orientation(
+    env: ManagerBasedRLEnv,
+    asset_cfg: SceneEntityCfg,
+    command_name: str,
+    std: float = 0.25
+) -> torch.Tensor:
 
+    asset: Articulation = env.scene[asset_cfg.name]
 
+    '''
+    由 pi / 2 转为  command.init_phase 为站立；
+    补偿解为 0
+
+    到 - pi / 2 最大，为深蹲。 补偿最大
+
+    站立姿势 0.5 ~ init_phase
+
+    target_compensation
+    sin(0) = 0
+    期望机器人完全直立 pitch_b = 0
+
+    深蹲姿势 phase = - pi / 2
+
+    target_compensation = abs(- 0.5 - command.init_phase / (0.5 * pi)) *  std
+    期望机器人轻微前倾以保持平衡
+    '''
+    # 相位计算
+    command: command_squat.SquatCommand = env.command_manager.get_term(command_name)
+    phase = (command.squat_phase + (0.5 * torch.pi  - command.init_phase)) / torch.pi
+    phase = torch.clamp_max(phase, max = 0.5)
+    # 补偿位姿
+    target_compensation = torch.abs(0.5 -  phase[:, 0]) * std
+
+    pitch_b = asset.data.projected_gravity_b[:, 0] # x project
+    error = torch.abs(torch.sin(target_compensation) - pitch_b)
+    return torch.exp(- error / 0.1)

@@ -78,7 +78,7 @@ class SquatCommand(CommandTerm):
         # pos_limits: 形状为 (num_envs, num_joints, 2)，包含每个关节的最小和最大位置限制
         pos_limits = self.asset.data.joint_pos_limits[:, self.cfg.asset_cfg.joint_ids].clone()
 
-        pos_min = self.asset.data.default_joint_pos[:, self.cfg.asset_cfg.joint_ids]
+        pos_min = pos_limits[:, :, 0]  #
         pos_max = pos_limits[:, :, 1]
 
         # cpos: 关节位置中心点，计算为关节位置限制的平均值
@@ -91,8 +91,11 @@ class SquatCommand(CommandTerm):
 
         # 计算初始相位：基于默认关节位置
         # 使用正弦逆函数将位置映射到相位：phase = asin((cpos - pos) / rad)
-        pos = torch.mean(pos_min, dim=-1, keepdim=True)
-        self.init_phase = torch.asin((self.cpos - pos) / self.rad)
+        pos = torch.mean(self.asset.data.default_joint_pos[:, self.cfg.asset_cfg.joint_ids], dim=-1, keepdim=True)
+
+        sin = (self.cpos - pos) / self.rad
+        sin = torch.clamp(sin, -1.0, 1.0)
+        self.init_phase = torch.asin(sin)
 
         # 初始化性能指标
         self.metrics["error_knee_pos"] = torch.zeros(self.num_envs, device=self.device)
@@ -128,7 +131,13 @@ class SquatCommand(CommandTerm):
         com = torch.cat((self.squat_command_phase, self.squat_phase), dim=-1)
         com_cos = torch.cos(com)
         com_sin = torch.sin(com)
-        return torch.cat((com / torch.pi, com_cos, com_sin, self.squat_phase_vel), dim=-1)
+        result = torch.cat((com / torch.pi, com_cos, com_sin, self.squat_phase_vel), dim=-1)
+
+        isnan = torch.isnan(result)
+        if torch.sum(isnan.float()) > 0:
+            print(result[isnan])
+            raise ValueError(f"command {torch.sum(isnan.float())}. error")
+        return result
 
     @property
     def command_pos(self) -> torch.Tensor:
@@ -141,6 +150,12 @@ class SquatCommand(CommandTerm):
             关节位置张量，形状为 (num_envs, num_joints)
         """
         pos = self.cpos - torch.sin(self.squat_phase) * self.rad
+
+        isnan = torch.isnan(pos)
+        if torch.sum(isnan.float()) > 0:
+            print(pos[isnan])
+            raise ValueError(f"command_pos {torch.sum(isnan.float())}. error")
+
         return pos
 
     def compute(self, dt: float):

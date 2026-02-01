@@ -26,6 +26,14 @@ class RewardsCfg(squat_env_cfg.RewardsCfg):
                 "asset_cfg": SceneEntityCfg("robot")}
     )
 
+    reward_orientation = RewTerm(
+        func=rewards.reward_orientation,
+        weight= 0.25,
+        params={"command_name": "squat_command",
+                "std": 0.36,
+                "asset_cfg": SceneEntityCfg("robot")}
+    )
+
     penalty_squat_pos = RewTerm(
         func=rewards.track_squat_error,
         weight=- 1e-3,

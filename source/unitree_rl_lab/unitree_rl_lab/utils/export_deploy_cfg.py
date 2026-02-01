@@ -46,30 +46,30 @@ def export_deploy_cfg(env: ManagerBasedRLEnv, log_dir):
         for item_name in ["lin_vel_x", "lin_vel_y", "ang_vel_z"]:
             ranges[item_name] = list(ranges[item_name])
         cfg["commands"]["base_velocity"]["ranges"] = ranges
-    elif hasattr(env.cfg.commands, "suqat_command"):  # some environments do not have base_velocity command
-        cfg["commands"]["suqat_command"] = {}
-        if hasattr(env.cfg.commands.suqat_command, "max_limit_ranges"):
-            ranges = env.cfg.commands.suqat_command.max_limit_ranges.to_dict()
+    elif hasattr(env.cfg.commands, "squat_command"):  # some environments do not have base_velocity command
+        cfg["commands"]["squat_command"] = {}
+        if hasattr(env.cfg.commands.squat_command, "max_limit_ranges"):
+            ranges = env.cfg.commands.squat_command.max_limit_ranges.to_dict()
         else:
-            ranges = env.cfg.commands.suqat_command.ranges.to_dict()
-        for item_name in ["suqat_phase", "full_times"]:
+            ranges = env.cfg.commands.squat_command.ranges.to_dict()
+        for item_name in ["squat_phase", "full_times"]:
             ranges[item_name] = list(ranges[item_name])
-        cfg["commands"]["suqat_command"]["ranges"] = ranges
+        cfg["commands"]["squat_command"]["ranges"] = ranges
 
-        command = env.command_manager.get_term("suqat_command")
-        cfg["commands"]["suqat_command"]["cpos"] = command.cpos[0].item()
-        cfg["commands"]["suqat_command"]["rad"] = command.rad[0].item()
+        command = env.command_manager.get_term("squat_command")
+        cfg["commands"]["squat_command"]["cpos"] = command.cpos[0].item()
+        cfg["commands"]["squat_command"]["rad"] = command.rad[0].item()
         ##
-        cfg["commands"]["suqat_command"]["update_command"] = "RT + Y.on_pressed"
-        cfg["commands"]["suqat_command"]["update_time"] = "RT + X.on_pressed"
+        cfg["commands"]["squat_command"]["update_command"] = "RT + Y.on_pressed"
+        cfg["commands"]["squat_command"]["update_time"] = "RT + X.on_pressed"
 
         left_knee_name = env.cfg.scene.robot.left_knee_name
         right_knee_name = env.cfg.scene.robot.right_knee_name
         left_knee_id = asset.find_joints(left_knee_name)[0][0]  #  joint_sdk_names.index(left_knee_name)
         right_knee_id = asset.find_joints(right_knee_name)[0][0]  #  joint_sdk_names.index(right_knee_name)
 
-        cfg["commands"]["suqat_command"]["left_knee_id"] = left_knee_id
-        cfg["commands"]["suqat_command"]["right_knee_id"] = right_knee_id
+        cfg["commands"]["squat_command"]["left_knee_id"] = left_knee_id
+        cfg["commands"]["squat_command"]["right_knee_id"] = right_knee_id
 
     # --- actions ---
     action_names = env.action_manager.active_terms

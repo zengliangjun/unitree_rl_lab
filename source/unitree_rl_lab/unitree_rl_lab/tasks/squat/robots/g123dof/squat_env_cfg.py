@@ -148,11 +148,11 @@ class EventCfg:
     )
 
     reset_robot_joints = EventTerm(
-        func=mdp.reset_joints_by_scale,
+        func=mdp.reset_joints_by_offset,
         mode="reset",
         params={
-            "position_range": (0.5, 1.5),
-            "velocity_range": (-1.0, 1.0),
+            "position_range": (-0.25, 0.25),
+            "velocity_range": (-0.25, 0.25),
         },
     )
 
@@ -178,23 +178,23 @@ class CommandsCfg:
                 ],
                 preserve_order=True),
 
-        resampling_time_range=(13, 13),
-        rel_reset_init_envs=0.2,
-        rel_compute_init_envs=0.25,
-        rel_compute_max_envs=0.25,
+        resampling_time_range=(4, 13),
+        rel_reset_init_envs=0.3,
+        rel_compute_init_envs=0.3,
+        rel_compute_max_envs=0.3,
 
         ranges=command_squat_cfg.SquatCommandCfg.Ranges(
-            squat_phase = (- math.pi * 31 / 64, 0.8599),
+            squat_phase = (- math.pi * 15 / 32, 0.8599),
             full_times = (4, 6.5)
         ),
 
         max_limit_ranges=command_squat_cfg.SquatCommandCfg.Ranges(
-            squat_phase = ( - math.pi * 31 / 64, 0.8599),
+            squat_phase = ( - math.pi * 15 / 32, 0.8599),
             full_times = (1.2, 6.5)
         ),
 
         min_limit_ranges=command_squat_cfg.SquatCommandCfg.Ranges(
-            squat_phase = (0.125 * math.pi, 0.25 * math.pi),
+            squat_phase = ( - math.pi * 15 / 32, 0.8599),
             full_times = (4, 4.5)
         )
 
@@ -303,8 +303,8 @@ class RewardsCfg:
 
     reward_pitch2zero = RewTerm(
         func=rewards.reward_pitch2zero,
-        weight=0.10,
-        params={"std": 0.25,
+        weight=0.25,
+        params={"std": 0.36,
                 "command_name": "squat_command",
                 "asset_cfg":
                 SceneEntityCfg("robot",
