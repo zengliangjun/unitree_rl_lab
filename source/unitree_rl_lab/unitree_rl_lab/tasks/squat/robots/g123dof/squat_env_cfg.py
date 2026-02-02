@@ -93,8 +93,8 @@ class EventCfg:
         mode="startup",
         params={
             "asset_cfg": SceneEntityCfg("robot", body_names=".*"),
-            "static_friction_range": (0.3, 1.6),
-            "dynamic_friction_range": (0.3, 1.6),
+            "static_friction_range": (0.15, 1.2),
+            "dynamic_friction_range": (0.15, 1.2),
             "restitution_range": (0.0, 0.0),
             "num_buckets": 64,
         },
@@ -116,7 +116,7 @@ class EventCfg:
         mode="reset",
         params={
             "asset_cfg": SceneEntityCfg("robot"),
-            "mass_distribution_params": (0.6, 1.5),
+            "mass_distribution_params": (0.5, 2.1),
             "operation": "scale",
         },
     )
@@ -126,8 +126,8 @@ class EventCfg:
         mode="reset",
         params={
             "asset_cfg": SceneEntityCfg("robot", body_names="torso_link"),
-            "force_range": (0.0, 0.0),
-            "torque_range": (-0.0, 0.0),
+            "force_range": (-5.0, 5.0),
+            "torque_range": (-0.5, 0.5),
         },
     )
 
@@ -137,22 +137,22 @@ class EventCfg:
         params={
             "pose_range": {"x": (-0.5, 0.5), "y": (-0.5, 0.5), "yaw": (-3.14, 3.14)},
             "velocity_range": {
-                "x": (0.0, 0.0),
-                "y": (0.0, 0.0),
-                "z": (0.0, 0.0),
-                "roll": (0.0, 0.0),
-                "pitch": (0.0, 0.0),
-                "yaw": (0.0, 0.0),
+                "x": (-0.2, 0.2),
+                "y": (-0.2, 0.2),
+                "z": (-0.2, 0.2),
+                "roll": (-0.2, 0.2),
+                "pitch": (-0.2, 0.2),
+                "yaw": (-0.2, 0.2),
             },
         },
     )
 
     reset_robot_joints = EventTerm(
-        func=mdp.reset_joints_by_offset,
+        func=mdp.reset_joints_by_scale,
         mode="reset",
         params={
-            "position_range": (-0.25, 0.25),
-            "velocity_range": (-0.25, 0.25),
+            "position_range": (0.5, 1.5),
+            "velocity_range": (-1.0, 1.0),
         },
     )
 
@@ -160,7 +160,7 @@ class EventCfg:
     push_robot = EventTerm(
         func=events.push_by_setting_velocity_with_level,
         mode="interval",
-        interval_range_s=(5.0, 5.0),
+        interval_range_s=(3.0, 8.0),
         params={
             "velocity_range": {"x": (-0.051, 0.051), "y": (-0.051, 0.051)},
             "max_velocity_range": {"x": (-0.5, 0.5), "y": (-0.5, 0.5)},
