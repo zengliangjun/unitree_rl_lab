@@ -17,12 +17,22 @@ class RewardsCfg(squat_env_cfg.RewardsCfg):
     dCAM_xy = RewTerm(
         func=rewards_cam.ArmCamDampingReward,
         weight=-3e-4,
-        params={"asset_cfg": SceneEntityCfg("robot")}
+        params={"command_name": "squat_command",
+                "asset_cfg": SceneEntityCfg("robot")}
     )
     tracking_CAM_reward = RewTerm(
         func=rewards_cam.armCamTrackingReward,
-        weight=4.1,
-        params={"asset_cfg": SceneEntityCfg("robot")}
+        weight=5.1,
+        params={"command_name": "squat_command",
+                "asset_cfg": SceneEntityCfg("robot")}
+    )
+
+    reward_orientation = RewTerm(
+        func=rewards.reward_orientation,
+        weight= 0.25,
+        params={"command_name": "squat_command",
+                "std": 0.36,
+                "asset_cfg": SceneEntityCfg("robot")}
     )
 
     penalty_squat_pos = RewTerm(
@@ -43,13 +53,11 @@ class RewardsCfg(squat_env_cfg.RewardsCfg):
 
     def __post_init__(self):
         self.track_symmetry_pos.weight = 0.25
-        self.com_zero.weight = 0.15
-        # self.zero_ang_vel.weight = 0.15
-        # self.zero_lin_xy_vel.weight = None
+        self.com_zero.weight = 0.25
 
 
 @configclass
-class UnitreeRobotEnvCfg(squat_env_cfg.UnitreeRobotEnvCfg):
+class RobotEnvCfg(squat_env_cfg.RobotEnvCfg):
 
     def __post_init__(self):
         super().__post_init__()
@@ -57,7 +65,7 @@ class UnitreeRobotEnvCfg(squat_env_cfg.UnitreeRobotEnvCfg):
 
 
 @configclass
-class UnitreeRobotPlayEnvCfg(squat_env_cfg.UnitreeRobotPlayEnvCfg):
+class RobotPlayEnvCfg(squat_env_cfg.RobotPlayEnvCfg):
     def __post_init__(self):
         super().__post_init__()
         self.scene.num_envs = 4

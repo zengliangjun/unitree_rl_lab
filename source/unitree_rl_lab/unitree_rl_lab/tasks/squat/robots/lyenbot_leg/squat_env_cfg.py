@@ -127,8 +127,8 @@ class EventCfg:
         mode="reset",
         params={
             "asset_cfg": SceneEntityCfg("robot", body_names="torso"),
-            "force_range": (0.0, 0.0),
-            "torque_range": (-0.0, 0.0),
+            "force_range": (-5.0, 5.0),
+            "torque_range": (-0.5, 0.5),
         },
     )
 
@@ -138,12 +138,12 @@ class EventCfg:
         params={
             "pose_range": {"x": (-0.5, 0.5), "y": (-0.5, 0.5), "yaw": (-3.14, 3.14)},
             "velocity_range": {
-                "x": (0.0, 0.0),
-                "y": (0.0, 0.0),
-                "z": (0.0, 0.0),
-                "roll": (0.0, 0.0),
-                "pitch": (0.0, 0.0),
-                "yaw": (0.0, 0.0),
+                "x": (-0.2, 0.2),
+                "y": (-0.2, 0.2),
+                "z": (-0.2, 0.2),
+                "roll": (-0.2, 0.2),
+                "pitch": (-0.2, 0.2),
+                "yaw": (-0.2, 0.2),
             },
         },
     )
@@ -161,11 +161,11 @@ class EventCfg:
     push_robot = EventTerm(
         func=events.push_by_setting_velocity_with_level,
         mode="interval",
-        interval_range_s=(5.0, 5.0),
+        interval_range_s=(3.0, 8.0),
         params={
             "velocity_range": {"x": (-0.051, 0.051), "y": (-0.051, 0.051)},
-            "max_velocity_range": {"x": (-0.25, 0.25), "y": (-0.25, 0.25)},
-            "speed": 1.001},
+            "max_velocity_range": {"x": (-0.5, 0.5), "y": (-0.5, 0.5)},
+            "speed": 1.1},
     )
 
 
@@ -179,7 +179,7 @@ class CommandsCfg:
                 ],
                 preserve_order=True),
 
-        resampling_time_range=(13, 13),
+        resampling_time_range=(4, 13),
         rel_reset_init_envs=0.2,
         rel_compute_init_envs=0.2,
         rel_compute_max_envs=0.2,
@@ -258,7 +258,7 @@ class RewardsCfg:
     # -- task
     track_squat_pos = RewTerm(
         func=rewards.track_squat_pos_exp,
-        weight=2.5,
+        weight= 3.5, # 2.5,
         params={"command_name": "squat_command",
                 "std": math.sqrt(0.01),
                 "asset_cfg": SceneEntityCfg("robot",
@@ -269,7 +269,7 @@ class RewardsCfg:
     )
     penalty_squat_pos = RewTerm(
         func=rewards.track_squat_error,
-        weight=- 1e-3,
+        weight=- 2e-3,
         params={"command_name": "squat_command",
                 "finished_weight": 1,
                 "finished_max_weight": 2,
@@ -298,29 +298,12 @@ class RewardsCfg:
                     preserve_order=True)},
     )
 
-    '''
-    reward_pitch2zero = RewTerm(
-        func=rewards.reward_pitch_forward_sing,
-        weight=0.07,
-        params={"asset_cfg":
-                SceneEntityCfg("robot",
-                    joint_names=[
-                        "left_hip_pitch_joint",
-                        "right_hip_pitch_joint",
-                        "left_knee_pitch_joint",
-                        "right_knee_pitch_joint",
-                        "left_ankle_pitch_joint",
-                        "right_ankle_pitch_joint"
-                        ],
-                    preserve_order=True)},
-    )
-    '''
     reward_pitch2zero = RewTerm(
         func=rewards.reward_pitch2zero,
-        weight=0.10,
+        weight=0.25,
         params={
                 "command_name": "squat_command",
-                "std": 0.125,
+                "std": 0.36,
                 "asset_cfg":
                 SceneEntityCfg("robot",
                     joint_names=[
@@ -336,8 +319,9 @@ class RewardsCfg:
 
     com_zero = RewTerm(
         func=rewards.com_zero,
-        weight=0.5,
+        weight=0.8,
         params={"std": 0.12,
+                "command_name": "squat_command",
                 "asset_cfg":
                 SceneEntityCfg("robot",
                     body_names=[
@@ -346,47 +330,31 @@ class RewardsCfg:
                         ],
                     preserve_order=True)},
     )
-    '''
-
-    com_zero = RewTerm(
-        func=zmp.ZMP,
-        weight=0.5,
-        params={"std": 0.12,
-                "asset_cfg":
-                SceneEntityCfg("robot",
-                    body_names=[
-                        "left_ankle_roll_link",
-                        "right_ankle_roll_link"
-                        ],
-                    preserve_order=True)},
-    )
-    '''
-
     zero_ang_vel = RewTerm(
         func=rewards.reward_zero_ang_vel_exp_v1,
-        weight=0.5,
+        weight=0.8,
         params={"finished_weight": 3, "std": 0.25}
     )
     zero_lin_xy_vel = RewTerm(
         func=rewards.reward_zero_lin_vel_xy_exp_v1,
-        weight=0.1,
+        weight=0.4,
         params={"finished_weight": 3, "std": 0.25}
     )
 
-    alive = RewTerm(func=mdp.is_alive, weight=0.07)
+    alive = RewTerm(func=mdp.is_alive, weight=0.13)
 
-    joint_vel = RewTerm(func=rewards.joint_vel_l2, weight=-0.01,
+    joint_vel = RewTerm(func=rewards.joint_vel_l2, weight=-0.03,
         params={"finished_weight": 3} )
-    joint_acc = RewTerm(func=rewards.joint_acc_l2, weight=-1e-5,
+    joint_acc = RewTerm(func=rewards.joint_acc_l2, weight=-2e-5,
         params={"finished_weight": 3} )
-    action_rate = RewTerm(func=mdp.action_rate_l2, weight=-0.03)
+    action_rate = RewTerm(func=mdp.action_rate_l2, weight=-0.015)
     dof_pos_limits = RewTerm(func=mdp.joint_pos_limits, weight=-5.0)
-    energy = RewTerm(func=rewards.energy, weight=-4e-3,
+    energy = RewTerm(func=rewards.energy, weight=-8e-3,
         params={"finished_weight": 3})
 
     joint_deviation = RewTerm(
         func=mdp.joint_deviation_l1,
-        weight=-0.5,
+        weight=-0.8,
         params={
             "asset_cfg": SceneEntityCfg(
                 "robot",
@@ -451,7 +419,7 @@ class RewardsCfg:
     )
     termination_penalty = RewTerm(
         func=mdp.is_terminated,
-        weight=-100.0,
+        weight=-330.0,
     )
 
 @configclass
@@ -462,44 +430,14 @@ class TerminationsCfg:
     base_height = DoneTerm(func=mdp.root_height_below_minimum, params={"minimum_height": 0.15})
     bad_orientation = DoneTerm(func=mdp.bad_orientation, params={"limit_angle": 0.8})
 
-    '''
-    illegal_contact = DoneTerm(func=mdp.illegal_contact, params={
-        "threshold": 1,
-        "sensor_cfg": SceneEntityCfg("contact_forces",
-        body_names=[
-            'base_link',
-            'left_hip_pitch_link',
-            'left_hip_roll_link',
-            'left_hip_yaw_link',
-            'left_knee_pitch_link',
-            'right_hip_pitch_link',
-            'right_hip_roll_link',
-            'right_hip_yaw_link',
-            'right_knee_pitch_link',
-            'torso',
-            'left_shoulder_pitch_link',
-            'left_shoulder_roll_link',
-            'left_elbow_yaw_link',
-            'left_elbow_pitch_link',
-            'left_elbow_roll_link',
-            'right_shoulder_pitch_link',
-            'right_shoulder_roll_link',
-            'right_elbow_yaw_link',
-            'right_elbow_pitch_link',
-            'right_elbow_roll_link'
-            ],
-            preserve_order = True)
-        })
-    '''
 
 @configclass
 class CurriculumCfg:
     """Curriculum terms for the MDP."""
-    squat_levels = CurrTerm(func=curriculums.squat_cmd_levels_v1,
+    squat_levels = CurrTerm(func=curriculums.squat_cmd_levels,
         params={
                 "command_term_name": "squat_command",
                 "reward_term_name": "track_squat_pos",
-                "penalty_term_name": "penalty_squat_pos",
             })
 
     push_levels = CurrTerm(func=curriculums.squat_push_levels,
@@ -566,22 +504,3 @@ class RobotPlayEnvCfg(RobotEnvCfg):
         self.commands.squat_command.ranges = self.commands.squat_command.max_limit_ranges
         self.events.push_robot = None
         self.curriculum = None
-
-
-from unitree_rl_lab.assets.robots.lyenbot_unitree import LYENBOTLEGS_CFG as UNITREE_CFG
-
-
-@configclass
-class UnitreeRobotEnvCfg(RobotEnvCfg):
-
-    def __post_init__(self):
-        super().__post_init__()
-        self.scene.robot = UNITREE_CFG.replace(prim_path="{ENV_REGEX_NS}/Robot")
-
-
-@configclass
-class UnitreeRobotPlayEnvCfg(RobotPlayEnvCfg):
-    def __post_init__(self):
-        super().__post_init__()
-        self.scene.robot = UNITREE_CFG.replace(prim_path="{ENV_REGEX_NS}/Robot")
-
