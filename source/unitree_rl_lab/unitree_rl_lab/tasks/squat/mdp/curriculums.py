@@ -33,7 +33,6 @@ def squat_cmd_levels(
 
     return torch.tensor(level, device=env.device)
 
-
 def squat_cmd_levels_v1(
     env: ManagerBasedRLEnv,
     env_ids: Sequence[int],
@@ -127,8 +126,8 @@ def squat_push_levels(
     reward_term = env.reward_manager.get_term_cfg(reward_term_name)
     reward = torch.mean(env.reward_manager._episode_sums[reward_term_name][env_ids]) / env.max_episode_length_s
 
-    if env.common_step_counter % env.max_episode_length == 0:
-        if reward > reward_term.weight * 0.85 and command_term.average_episode_length > env.max_episode_length * 0.96:
+    if env.common_step_counter % (env.max_episode_length * 4) == 0:
+        if reward > reward_term.weight * 0.85 and command_term.average_episode_length > env.max_episode_length * 0.90:
 
             for key in ranges:
                 org = ranges[key]
@@ -156,3 +155,72 @@ def squat_push_levels(
         '''
 
     return torch.tensor(ranges["x"][1], device=env.device)
+
+
+def support_force_levels(
+    env: ManagerBasedRLEnv,
+    env_ids: Sequence[int],
+    command_term_name: str = "squat_command",
+    event_term_name: str = "support_force",
+    reward_term_name: str = "track_squat_pos",
+) -> torch.Tensor:
+
+    command_term: command_squat.SquatCommand = env.command_manager.get_term(command_term_name)
+
+    action_term: EventTermCfg = env.event_manager.get_term_cfg(event_term_name)
+
+    reward_term = env.reward_manager.get_term_cfg(reward_term_name)
+    reward = torch.mean(env.reward_manager._episode_sums[reward_term_name][env_ids]) / env.max_episode_length_s
+
+    if env.common_step_counter % (env.max_episode_length * 4) == 0:
+
+        coefficient: float = action_term.params["coefficient"]
+        min_coefficient: float = action_term.params["min_coefficient"]
+        max_coefficient: float = action_term.params["max_coefficient"]
+
+        if reward > reward_term.weight * 0.85 and command_term.average_episode_length > env.max_episode_length * 0.90:
+            coefficient -= 0.002
+            coefficient = max(coefficient, min_coefficient)
+            action_term.params["coefficient"] = coefficient
+
+        elif reward < reward_term.weight * 0.3 or command_term.average_episode_length < env.max_episode_length * 0.3:
+            coefficient += 0.002
+            coefficient = min(coefficient, max_coefficient)
+            action_term.params["coefficient"] = coefficient
+
+    return torch.tensor(action_term.params["coefficient"], device=env.device)
+
+
+
+def support_mass_levels(
+    env: ManagerBasedRLEnv,
+    env_ids: Sequence[int],
+    command_term_name: str = "squat_command",
+    event_term_name: str = "body_mass",
+    reward_term_name: str = "track_squat_pos",
+) -> torch.Tensor:
+
+    command_term: command_squat.SquatCommand = env.command_manager.get_term(command_term_name)
+
+    action_term: EventTermCfg = env.event_manager.get_term_cfg(event_term_name)
+
+    reward_term = env.reward_manager.get_term_cfg(reward_term_name)
+    reward = torch.mean(env.reward_manager._episode_sums[reward_term_name][env_ids]) / env.max_episode_length_s
+
+    if env.common_step_counter % (env.max_episode_length * 4) == 0:
+
+        coefficient: float = action_term.params["coefficient"]
+        min_coefficient: float = action_term.params["min_coefficient"]
+        max_coefficient: float = action_term.params["max_coefficient"]
+
+        if reward > reward_term.weight * 0.85 and command_term.average_episode_length > env.max_episode_length * 0.90:
+            coefficient += 0.002
+            coefficient = min(coefficient, max_coefficient)
+            action_term.params["coefficient"] = coefficient
+
+        elif reward < reward_term.weight * 0.3 or command_term.average_episode_length < env.max_episode_length * 0.3:
+            coefficient -= 0.002
+            coefficient = max(coefficient, max_coefficient)
+            action_term.params["coefficient"] = coefficient
+
+    return torch.tensor(action_term.params["coefficient"], device=env.device)

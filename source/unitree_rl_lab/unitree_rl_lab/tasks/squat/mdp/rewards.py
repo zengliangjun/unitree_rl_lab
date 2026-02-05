@@ -39,8 +39,8 @@ def track_squat_error(
     pos_error = command.command_pos - asset.data.joint_pos[:, asset_cfg.joint_ids]
 
     pos_error = torch.abs(pos_error / std)
-    error = torch.zeros_like(pos_error)
-    error[command.is_finished_flags] = pos_error[command.is_finished_flags] * finished_weight
+    # error = torch.zeros_like(pos_error)
+    # error[command.is_finished_flags] = pos_error[command.is_finished_flags] * finished_weight
     pos_error[command.is_finished_flags] *= finished_weight
     return  torch.sum(torch.square(pos_error), dim = -1) * penalty_weight
 

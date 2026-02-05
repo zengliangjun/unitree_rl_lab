@@ -18,10 +18,10 @@ from isaaclab.utils import configclass
 from isaaclab.utils.assets import ISAAC_NUCLEUS_DIR, ISAACLAB_NUCLEUS_DIR
 from isaaclab.utils.noise import AdditiveUniformNoiseCfg as Unoise
 
-from unitree_rl_lab.assets.robots.lyenbot_legs import LYENBOT_CFG as ROBOT_CFG
+from unitree_rl_lab.assets.robots.lyenbot_legs import LYENBOT_SQUATCFG as ROBOT_CFG
 from unitree_rl_lab.tasks.locomotion import mdp
 
-
+from unitree_rl_lab.tasks.squat.mdp import rewards_cam
 from unitree_rl_lab.tasks.squat.mdp import command_squat_cfg, events, observations, rewards, curriculums, zmp
 
 COBBLESTONE_ROAD_CFG = terrain_gen.TerrainGeneratorCfg(
@@ -100,35 +100,18 @@ class EventCfg:
             "num_buckets": 64,
         },
     )
-
-    add_base_mass = EventTerm(
-        func=mdp.randomize_rigid_body_mass,
-        mode="startup",
-        params={
-            "asset_cfg": SceneEntityCfg("robot", body_names="torso"),
-            "mass_distribution_params": (-0.5, 3.0),
-            "operation": "add",
-        },
-    )
-
     # reset
-    add_mass = EventTerm(
-        func=mdp.randomize_rigid_body_mass,
+    body_mass = EventTerm(
+        func=events.apply_support_body_mass,
         mode="reset",
         params={
             "asset_cfg": SceneEntityCfg("robot"),
-            "mass_distribution_params": (0.6, 1.5),
+            "mass_distribution_params": (0.45, 2.8),
             "operation": "scale",
-        },
-    )
 
-    base_external_force_torque = EventTerm(
-        func=mdp.apply_external_force_torque,
-        mode="reset",
-        params={
-            "asset_cfg": SceneEntityCfg("robot", body_names="torso"),
-            "force_range": (-5.0, 5.0),
-            "torque_range": (-0.5, 0.5),
+            "coefficient": 0.3,
+            "min_coefficient": 0.2,
+            "max_coefficient": 1,
         },
     )
 
@@ -163,11 +146,23 @@ class EventCfg:
         mode="interval",
         interval_range_s=(3.0, 8.0),
         params={
-            "velocity_range": {"x": (-0.051, 0.051), "y": (-0.051, 0.051)},
+            "velocity_range": {"x": (-0.025, 0.025), "y": (-0.025, 0.025)},
             "max_velocity_range": {"x": (-0.5, 0.5), "y": (-0.5, 0.5)},
-            "speed": 1.1},
+            "speed": 1.03},
     )
 
+    support_force = EventTerm(
+        func=events.apply_external_force_torque,
+        mode="reset",
+        params={
+            "asset_cfg": SceneEntityCfg("robot", body_names="torso"),
+            #"coefficient": 0.8,
+            #"min_coefficient": 0,
+            #"max_coefficient": 0.8,
+            "force_range": (-5.0, 5.0),
+            "torque_range": (-0.5, 0.5),
+        },
+    )
 
 @configclass
 class CommandsCfg:
@@ -182,23 +177,20 @@ class CommandsCfg:
         resampling_time_range=(4, 13),
         rel_reset_init_envs=0.2,
         rel_compute_init_envs=0.2,
-        rel_compute_max_envs=0.2,
+        rel_compute_max_envs=0.5,
 
         ranges=command_squat_cfg.SquatCommandCfg.Ranges(
             squat_phase = (- math.pi * 15 / 32, 0.8599),
-            full_times = (4, 6.5)
+            full_times = (6.5, 8)
         ),
-
         max_limit_ranges=command_squat_cfg.SquatCommandCfg.Ranges(
             squat_phase = ( - math.pi * 15 / 32, 0.8599),
-            full_times = (1.6, 6.5)
+            full_times = (2.8, 8)
         ),
-
         min_limit_ranges=command_squat_cfg.SquatCommandCfg.Ranges(
-            squat_phase = (0.125 * math.pi, 0.25 * math.pi),
-            full_times = (4, 4.5)
-        )
-
+            squat_phase = ( - math.pi * 15 / 32, 0.8599),
+            full_times = (2.8, 8)
+        ),
     )
 
 
@@ -258,7 +250,7 @@ class RewardsCfg:
     # -- task
     track_squat_pos = RewTerm(
         func=rewards.track_squat_pos_exp,
-        weight= 3.5, # 2.5,
+        weight= 5,
         params={"command_name": "squat_command",
                 "std": math.sqrt(0.01),
                 "asset_cfg": SceneEntityCfg("robot",
@@ -271,7 +263,7 @@ class RewardsCfg:
         func=rewards.track_squat_error,
         weight=- 2e-3,
         params={"command_name": "squat_command",
-                "finished_weight": 1,
+                "finished_weight": 5,
                 "finished_max_weight": 2,
                 "penalty_weight": 1,
                 "penalty_max_weight": 3,
@@ -284,7 +276,7 @@ class RewardsCfg:
     )
     track_symmetry_pos = RewTerm(
         func=rewards.track_symmetry_pos_exp,
-        weight=0.15,
+        weight=0.25,
         params={"std": math.sqrt(0.09),
                 "asset_cfg":
                 SceneEntityCfg("robot",
@@ -319,7 +311,7 @@ class RewardsCfg:
 
     com_zero = RewTerm(
         func=rewards.com_zero,
-        weight=0.8,
+        weight=0.25,
         params={"std": 0.12,
                 "command_name": "squat_command",
                 "asset_cfg":
@@ -343,10 +335,43 @@ class RewardsCfg:
 
     alive = RewTerm(func=mdp.is_alive, weight=0.13)
 
-    joint_vel = RewTerm(func=rewards.joint_vel_l2, weight=-0.03,
-        params={"finished_weight": 3} )
-    joint_acc = RewTerm(func=rewards.joint_acc_l2, weight=-2e-5,
-        params={"finished_weight": 3} )
+
+    hip_joint_vel = RewTerm(func=rewards.joint_vel_l2,
+                        weight=-0.06,
+        params={"finished_weight": 3,
+                "asset_cfg":
+                SceneEntityCfg("robot",
+                               joint_names = [".*_hip_pitch_joint",
+                                              ".*_hip_roll_joint",
+                                              ".*_knee_pitch_joint",
+                                              ".*_ankle_pitch_joint"])} )
+
+    hip_joint_acc = RewTerm(func=rewards.joint_acc_l2,
+                        weight=-6e-5,
+        params={"finished_weight": 3,
+                "asset_cfg":
+                SceneEntityCfg("robot",
+                               joint_names = [".*_hip_pitch_joint",
+                                              ".*_hip_roll_joint",
+                                              ".*_knee_pitch_joint",
+                                              ".*_ankle_pitch_joint"])} )
+
+    joint_vel = RewTerm(func=rewards.joint_vel_l2, weight=-0.01,
+        params={"finished_weight": 3,
+                "asset_cfg":
+                SceneEntityCfg("robot",
+                joint_names = [
+                ".*_hip_yaw_joint",
+                ".*_ankle_roll_joint"])} )
+
+    joint_acc = RewTerm(func=rewards.joint_acc_l2, weight=-1e-5,
+        params={"finished_weight": 3,
+                "asset_cfg":
+                SceneEntityCfg("robot",
+                joint_names = [
+                ".*_hip_yaw_joint",
+                ".*_ankle_roll_joint"])} )
+
     action_rate = RewTerm(func=mdp.action_rate_l2, weight=-0.015)
     dof_pos_limits = RewTerm(func=mdp.joint_pos_limits, weight=-5.0)
     energy = RewTerm(func=rewards.energy, weight=-8e-3,
@@ -419,7 +444,36 @@ class RewardsCfg:
     )
     termination_penalty = RewTerm(
         func=mdp.is_terminated,
-        weight=-330.0,
+        weight=-880.0,
+    )
+
+    ##
+    dCAM_xy = RewTerm(
+        func=rewards_cam.ArmCamDampingReward,
+        weight=-9e-4,
+        params={"command_name": "squat_command",
+                "asset_cfg": SceneEntityCfg("robot")}
+    )
+    tracking_CAM_reward = RewTerm(
+        func=rewards_cam.armCamTrackingReward,
+        weight=5.1,
+        params={"command_name": "squat_command",
+                "asset_cfg": SceneEntityCfg("robot")}
+    )
+
+    reward_orientation = RewTerm(
+        func=rewards.reward_orientation,
+        weight= 0.25,
+        params={"command_name": "squat_command",
+                "std": 0.36,
+                "asset_cfg": SceneEntityCfg("robot")}
+    )
+
+    penalty_lin_z = RewTerm(
+        func=rewards.penalty_lin_vel_z_v1,
+        weight= - 10,
+        params={"command_name": "squat_command",
+                "asset_cfg": SceneEntityCfg("robot")}
     )
 
 @configclass
@@ -435,8 +489,15 @@ class TerminationsCfg:
 class CurriculumCfg:
     """Curriculum terms for the MDP."""
     squat_levels = CurrTerm(func=curriculums.squat_cmd_levels,
+         params={
+                 "command_term_name": "squat_command",
+                 "reward_term_name": "track_squat_pos",
+             })
+
+    mass_levels = CurrTerm(func=curriculums.support_mass_levels,
         params={
                 "command_term_name": "squat_command",
+                "event_term_name": "body_mass",
                 "reward_term_name": "track_squat_pos",
             })
 
@@ -446,6 +507,7 @@ class CurriculumCfg:
                 "event_term_name": "push_robot",
                 "reward_term_name": "track_squat_pos",
             })
+
 
 @configclass
 class RobotEnvCfg(ManagerBasedRLEnvCfg):
@@ -496,11 +558,11 @@ class RobotPlayEnvCfg(RobotEnvCfg):
     def __post_init__(self):
         super().__post_init__()
         self.episode_length_s = 200.0
-        self.scene.num_envs = 32
+        self.scene.num_envs = 16
 
         self.scene.terrain.terrain_generator.border_width=2.0
-        self.scene.terrain.terrain_generator.num_rows=1
-        self.scene.terrain.terrain_generator.num_cols=1
+        self.scene.terrain.terrain_generator.num_rows=4
+        self.scene.terrain.terrain_generator.num_cols=4
         self.commands.squat_command.ranges = self.commands.squat_command.max_limit_ranges
-        self.events.push_robot = None
+        self.events = None
         self.curriculum = None

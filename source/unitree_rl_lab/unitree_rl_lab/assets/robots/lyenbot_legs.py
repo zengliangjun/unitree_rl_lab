@@ -160,3 +160,57 @@ LYENBOT_CFG = unitree.UnitreeArticulationCfg(
     left_knee_name="left_knee_pitch_joint",
     right_knee_name="right_knee_pitch_joint"
 )
+
+
+LYENBOT_SQUATCFG = LYENBOT_CFG.replace(actuators={
+        "N7520-14.3": ImplicitActuatorCfg(
+            joint_names_expr=[".*_hip_pitch_joint", ".*_hip_yaw_joint", "waist_yaw_joint"],  # 5
+            effort_limit_sim={
+                ".*_hip_pitch_joint": 140,
+                ".*_hip_yaw_joint": 55,
+                "waist_yaw_joint": 55
+            },
+            velocity_limit_sim={
+                ".*_hip_pitch_joint": 12.04,
+                ".*_hip_yaw_joint": 17.79,
+                "waist_yaw_joint": 17.7
+            },
+            stiffness={
+                ".*_hip_pitch_joint": 99.098427777,
+                ".*_hip_yaw_joint": 40.179238471,
+                "waist_yaw_joint": 40.179238471
+            },
+            damping={
+                ".*_hip_pitch_joint": 6.308801854,
+                ".*_hip_yaw_joint": 2.557889765,
+                "waist_yaw_joint": 2.557889765,
+            },
+
+            armature=0.010177520,
+        ),
+        "N7520-22.5": ImplicitActuatorCfg(
+            joint_names_expr=[".*_hip_roll_joint", ".*_knee_pitch_joint"],  # 4
+            effort_limit_sim={
+                ".*_hip_roll_joint": 55,
+                ".*_knee_pitch_joint": 140
+            },
+            velocity_limit_sim={
+                ".*_hip_roll_joint": 17.79,
+                ".*_knee_pitch_joint": 12.04
+            },
+            stiffness=99.098427777,
+            damping=6.308801854,
+            armature=0.025101925,
+        ),
+        "N5020-16-parallel": ImplicitActuatorCfg(
+            joint_names_expr=[".*ankle.*"],  # 4
+            effort_limit_sim={
+                ".*ankle_pitch.*": 66,
+                ".*ankle_roll.*": 33
+            },
+            velocity_limit_sim=16.22,
+            stiffness=14.250623098, # 28.501246196,
+            damping=0.907222843, # 1.814445687,
+            armature=0.007219450,
+        ),
+    })
