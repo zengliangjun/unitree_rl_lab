@@ -7,11 +7,13 @@
 #include "isaaclab/envs/mdp/actions/joint_actions.h"
 #include "isaaclab/envs/mdp/terminations.h"
 
+#include <fstream>
+
 class State_RLBase : public FSMState
 {
 public:
     State_RLBase(int state_mode, std::string state_string);
-    
+
     void enter()
     {
         // set gain
@@ -44,17 +46,26 @@ public:
                 sleepTill += dt;
             }
         });
+
+#ifdef DEBUGSTREAM
+        FSMState::enter();
+#endif
     }
 
     void run();
-    
+
     void exit()
     {
         policy_thread_running = false;
         if (policy_thread.joinable()) {
             policy_thread.join();
         }
+#ifdef DEBUGSTREAM
+        FSMState::exit();
+#endif
     }
+
+
 
 private:
     std::unique_ptr<isaaclab::ManagerBasedRLEnv> env;

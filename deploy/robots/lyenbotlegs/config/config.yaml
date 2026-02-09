@@ -58,6 +58,7 @@ FSM:
     transitions:
       FixStand: LT + up.on_pressed
       Passive: LT + B.on_pressed
+      Velocity: RB + X.on_pressed
     # policy_dir: config/policy/lyenbot_leg_squat/2026-01-15_20-32-26/
-    policy_dir: config/policy/lyenbotleg_cam_unitree_squat/2026-01-20_23-03-14/
+    policy_dir: config/policy/lyenbotlegcamsquatv1/2026-02-04_16-32-32/
 

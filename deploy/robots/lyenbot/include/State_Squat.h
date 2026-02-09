@@ -43,6 +43,9 @@ public:
                 sleepTill += dt;
             }
         });
+#ifdef DEBUGSTREAM
+        FSMState::enter();
+#endif
     }
 
     void pre_run();
@@ -55,6 +58,9 @@ public:
         if (policy_thread.joinable()) {
             policy_thread.join();
         }
+#ifdef DEBUGSTREAM
+        FSMState::exit();
+#endif
     }
 
 private:

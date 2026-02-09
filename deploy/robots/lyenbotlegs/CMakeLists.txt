@@ -33,9 +33,14 @@ file(GLOB_RECURSE ADD_SRC_LIST
 
 add_library(${PROJECT_NAME}_lib ${ADD_SRC_LIST})
 link_libraries(${PROJECT_NAME}_lib)
+target_compile_definitions(${PROJECT_NAME}_lib PRIVATE
+    ROBOT_ID=7          # lyenbotlegs
+    DEBUGSTREAM
+)
 
 add_executable(${PROJECT_NAME} ${PROJECT_SOURCE_DIR}/../lyenbot/main.cpp)
 target_compile_definitions(${PROJECT_NAME} PRIVATE
     ROBOT_ID=7          # lyenbotlegs
+    DEBUGSTREAM
 )
 

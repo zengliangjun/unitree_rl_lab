@@ -9,6 +9,7 @@
 
 #include <fstream>
 
+#ifdef DEBUGSTREAM
 bool readTxtTo2DVector(const std::string& file_path, std::vector<std::vector<float>>& data_2dvec) {
     // 清空二维vector
     data_2dvec.clear();
@@ -54,9 +55,7 @@ bool readTxtTo2DVector(const std::string& file_path, std::vector<std::vector<flo
               << data_2dvec[0].size() << std::endl;
     return true;
 }
-
-
-
+#endif
 
 class State_Passive : public FSMState
 {
@@ -74,8 +73,8 @@ public:
             }
         }
 
+#ifdef DEBUGSTREAM
         robot_ = std::make_shared<unitree::BaseArticulation<LowState_t::SharedPtr>>(FSMState::lowstate);
-
         robot_->update();
         {
             std::string update_command = "RB + up.on_pressed";
@@ -90,6 +89,7 @@ public:
             assert (motor2controlmap_[control_data_motor_ids_[cid]] == cid);
         }
         readTxtTo2DVector("mujoco_state.txt", control_data_);
+#endif
     }
 
     void enter()
@@ -106,10 +106,13 @@ public:
         }
     }
 
+
+#ifdef DEBUGSTREAM
     void pre_run()
     {
         FSMState::pre_run();
         robot_->update();
+
         if (joystick_checks_()) {
             update_q = true;
             dump_data_type ++;
@@ -125,9 +128,11 @@ public:
         //     std::cout << "R q0: " << lowstate->msg_.motor_state()[0].q() << std::endl;
         // }
     }
+#endif
 
     void run()
     {
+#ifdef DEBUGSTREAM
         if (control_times >= control_data_.size() || !update_q) {
             for(int i(0); i < lowcmd->msg_.motor_cmd().size(); ++i)
             {
@@ -160,10 +165,16 @@ public:
 
             control_times ++;
         }
-
+#else
+        for(int i(0); i < lowcmd->msg_.motor_cmd().size(); ++i)
+        {
+           lowcmd->msg_.motor_cmd()[i].q() = lowstate->msg_.motor_state()[i].q();
+        }
+#endif
         return;
     }
 
+#ifdef DEBUGSTREAM
     bool update_q = false;
     int dump_data_type = -1;
     std::function<bool()> joystick_checks_;
@@ -198,6 +209,7 @@ public:
                               };
 
     int control_times = 0;
+#endif
 };
 
 REGISTER_FSM(State_Passive)

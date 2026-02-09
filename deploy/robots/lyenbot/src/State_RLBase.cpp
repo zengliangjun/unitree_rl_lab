@@ -4,7 +4,7 @@
 #include "isaaclab/envs/mdp/actions/joint_actions.h"
 
 State_RLBase::State_RLBase(int state_mode, std::string state_string)
-: FSMState(state_mode, state_string) 
+: FSMState(state_mode, state_string)
 {
     auto cfg = param::config["FSM"][state_string];
     auto policy_dir = param::parser_policy_dir(cfg["policy_dir"].as<std::string>());
@@ -29,4 +29,29 @@ void State_RLBase::run()
     for(int i(0); i < env->robot->data.joint_ids_map.size(); i++) {
         lowcmd->msg_.motor_cmd()[env->robot->data.joint_ids_map[i]].q() = action[i];
     }
+
+#ifdef DEBUGSTREAM
+    std::stringstream state_stream;
+    std::stringstream control_stream;
+
+    state_stream << std::right << std::fixed << std::setprecision(4);
+    control_stream << std::right << std::fixed << std::setprecision(4);
+
+    state_stream << "RLBase_state: ";
+    control_stream << "RLBase_control: ";
+    for(int i(0); i < env->robot->data.joint_ids_map.size(); i++) {
+
+        state_stream << std::setw(8) << lowstate->msg_.motor_state()[i].q()<< " ";
+        control_stream << std::setw(8) << lowcmd->msg_.motor_cmd()[i].q() << " ";
+    }
+    state_stream << std::endl;
+    state_stream << control_stream.str() << std::endl;
+    debug_stream_ << state_stream.str();
+
+    debug_stream_ << "ang_vel: " << env->robot->data.root_ang_vel_b.transpose() << std::endl <<
+                     "gravity_b: " << env->robot->data.projected_gravity_b.transpose() << std::endl <<
+                     "quat_w: " << env->robot->data.root_quat_w.coeffs().transpose() << std::endl;
+
+#endif
+
 }
