@@ -393,17 +393,30 @@ class RewardsCfg:
         },
     )
 
-    track_constraint_width = RewTerm(
+    track_ankle_width = RewTerm(
         func=rewards.track_constraint_width,
         weight=0.1,
         params={
             "asset_cfg":
             SceneEntityCfg("robot", body_names=[
-                "left_knee_pitch_link",
-                "right_knee_pitch_link",
                 "left_ankle_roll_link",
                 "right_ankle_roll_link"],
             preserve_order=True),
+            "target_width": 0.232,
+            "std": 0.12
+        },
+    )
+
+    track_knee_width = RewTerm(
+        func=rewards.track_constraint_width_v2,
+        weight=0.1,
+        params={
+            "asset_cfg":
+            SceneEntityCfg("robot", body_names=[
+                "left_knee_pitch_link",
+                "right_knee_pitch_link"],
+            preserve_order=True),
+            "command_name": "squat_command",
             "target_width": 0.232,
             "std": 0.12
         },
@@ -444,7 +457,7 @@ class RewardsCfg:
     )
     termination_penalty = RewTerm(
         func=mdp.is_terminated,
-        weight=-880.0,
+        weight=-330.0,
     )
 
     ##

@@ -78,6 +78,32 @@ def track_constraint_width(
     # 将偏差放大（乘以 100），计算其指数惩罚，最后求所有对的平均值作为最终 reward
     return - torch.norm(error, dim=-1) + torch.norm(torch.exp(- error), dim = -1)
 
+
+
+def track_constraint_width_v2(
+    env: ManagerBasedRLEnv,
+    asset_cfg: SceneEntityCfg,
+    command_name: str,
+    target_width: float = 0.2,
+    std: float = 0.04
+) -> torch.Tensor:
+
+    command: command_squat.SquatCommand = env.command_manager.get_term(command_name)
+    target_width = target_width * (1 + 0.5 * torch.cos(command.squat_phase))
+
+    asset: Articulation = env.scene[asset_cfg.name]
+    body_pos_w = asset.data.body_pos_w[:, asset_cfg.body_ids]
+
+    quat_w = torch.repeat_interleave(asset.data.root_link_quat_w[:, None, :], body_pos_w.shape[1], dim=1)
+
+    body_pos = math_utils.quat_apply_inverse(quat_w, body_pos_w)
+
+    #error = torch.square((torch.abs(body_pos[:, 0::2, 1] - body_pos[:, 1::2, 1]) - target_width) / std)
+    error = torch.abs((torch.abs(body_pos[:, 0::2, 1] - body_pos[:, 1::2, 1]) - target_width) / std)
+
+    # 将偏差放大（乘以 100），计算其指数惩罚，最后求所有对的平均值作为最终 reward
+    return - torch.norm(error, dim=-1) + torch.norm(torch.exp(- error), dim = -1)
+
 def reward_pitch2zero(
     env: ManagerBasedRLEnv,
     asset_cfg: SceneEntityCfg,

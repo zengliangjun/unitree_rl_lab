@@ -220,7 +220,7 @@ def support_mass_levels(
 
         elif reward < reward_term.weight * 0.3 or command_term.average_episode_length < env.max_episode_length * 0.3:
             coefficient -= 0.002
-            coefficient = max(coefficient, max_coefficient)
+            coefficient = max(coefficient, min_coefficient)
             action_term.params["coefficient"] = coefficient
 
     return torch.tensor(action_term.params["coefficient"], device=env.device)
