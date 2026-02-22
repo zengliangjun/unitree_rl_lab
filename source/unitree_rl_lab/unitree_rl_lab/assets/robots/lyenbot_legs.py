@@ -53,7 +53,8 @@ from . import unitree
 
 LYENBOT_CFG = unitree.UnitreeArticulationCfg(
     spawn=sim_utils.UsdFileCfg(
-        usd_path=f"{unitree.UNITREE_MODEL_DIR}/lyenbot/usd_lyenbotleg/lyenbotleg_20151206_collision.usd",
+        # usd_path=f"{unitree.UNITREE_MODEL_DIR}/lyenbot/usd_lyenbotleg/lyenbotleg_20151206_collision.usd",
+        usd_path=f"{unitree.UNITREE_MODEL_DIR}/lyenbot/usd_lyenbotleg_fix_ankle/lyenbotlegs_20260212_collision_ankle_roll_pitch.usd",
         activate_contact_sensors=True,
         rigid_props=sim_utils.RigidBodyPropertiesCfg(
             disable_gravity=False,
@@ -92,8 +93,16 @@ LYENBOT_CFG = unitree.UnitreeArticulationCfg(
                 ".*_hip_yaw_joint": 17.79,
                 "waist_yaw_joint": 17.7
             },
-            stiffness=40.179238471,
-            damping=2.557889765,
+            stiffness={
+                ".*_hip_pitch_joint": 200,
+                ".*_hip_yaw_joint": 100,
+                "waist_yaw_joint": 100
+            },
+            damping={
+                ".*_hip_pitch_joint": 10,
+                ".*_hip_yaw_joint": 5,
+                "waist_yaw_joint": 5
+            },
             armature=0.010177520,
         ),
         "N7520-22.5": ImplicitActuatorCfg(
@@ -106,8 +115,14 @@ LYENBOT_CFG = unitree.UnitreeArticulationCfg(
                 ".*_hip_roll_joint": 17.79,
                 ".*_knee_pitch_joint": 12.04
             },
-            stiffness=99.098427777,
-            damping=6.308801854,
+            stiffness={
+                ".*_hip_roll_joint": 100,
+                ".*_knee_pitch_joint": 200
+            },
+            damping={
+                ".*_hip_roll_joint": 5,
+                ".*_knee_pitch_joint": 10
+            },
             armature=0.025101925,
         ),
         "N5020-16-parallel": ImplicitActuatorCfg(
@@ -117,8 +132,8 @@ LYENBOT_CFG = unitree.UnitreeArticulationCfg(
                 ".*ankle_roll.*": 33
             },
             velocity_limit_sim=16.22,
-            stiffness=14.250623098, # 28.501246196,
-            damping=0.907222843, # 1.814445687,
+            stiffness=6, # 28.501246196,
+            damping=2.65, # 1.814445687,
             armature=0.007219450,
         ),
     },
