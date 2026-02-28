@@ -94,14 +94,14 @@ LYENBOT_CFG = unitree.UnitreeArticulationCfg(
                 "waist_yaw_joint": 17.7
             },
             stiffness={
-                ".*_hip_pitch_joint": 200,
-                ".*_hip_yaw_joint": 100,
-                "waist_yaw_joint": 100
+                ".*_hip_pitch_joint": 80,  #
+                ".*_hip_yaw_joint": 60,  #
+                "waist_yaw_joint": 60,  #
             },
             damping={
-                ".*_hip_pitch_joint": 10,
-                ".*_hip_yaw_joint": 5,
-                "waist_yaw_joint": 5
+                ".*_hip_pitch_joint": 4,
+                ".*_hip_yaw_joint": 3,
+                "waist_yaw_joint": 3
             },
             armature=0.010177520,
         ),
@@ -116,12 +116,12 @@ LYENBOT_CFG = unitree.UnitreeArticulationCfg(
                 ".*_knee_pitch_joint": 12.04
             },
             stiffness={
-                ".*_hip_roll_joint": 100,
-                ".*_knee_pitch_joint": 200
+                ".*_hip_roll_joint": 60,  #
+                ".*_knee_pitch_joint": 80,  #
             },
             damping={
-                ".*_hip_roll_joint": 5,
-                ".*_knee_pitch_joint": 10
+                ".*_hip_roll_joint": 3,
+                ".*_knee_pitch_joint": 4
             },
             armature=0.025101925,
         ),
@@ -132,8 +132,8 @@ LYENBOT_CFG = unitree.UnitreeArticulationCfg(
                 ".*ankle_roll.*": 33
             },
             velocity_limit_sim=16.22,
-            stiffness=6, # 28.501246196,
-            damping=2.65, # 1.814445687,
+            stiffness=14, # 28.501246196,
+            damping=0.9, # 1.814445687,
             armature=0.007219450,
         ),
     },

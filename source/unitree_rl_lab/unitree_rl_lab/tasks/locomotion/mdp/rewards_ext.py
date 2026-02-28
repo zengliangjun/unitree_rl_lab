@@ -359,3 +359,9 @@ def penalty_feet_orientation(env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg =
     gw = torch.repeat_interleave(asset.data.GRAVITY_VEC_W.unsqueeze(1), repeats=len(asset_cfg.body_ids), dim=1)
     feet_gravity_b = math_utils.quat_apply_inverse(asset.data.body_quat_w[:, asset_cfg.body_ids], gw)
     return torch.sum(torch.sum(torch.square(feet_gravity_b[:, :, :2]), dim=-1), dim=-1) * valid_len.float()
+
+def action_rate_l2_ext(env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")) -> torch.Tensor:
+    """Penalize the rate of change of the actions using L2 squared kernel."""
+    return torch.sum(torch.square(env.action_manager.action[:, asset_cfg.joint_ids] - env.action_manager.prev_action[:, asset_cfg.joint_ids]), dim=1)
+
+
