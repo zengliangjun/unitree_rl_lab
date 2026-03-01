@@ -192,19 +192,24 @@ class CommandsCfg:
         asset_name="robot",
         resampling_time_range=(6.0, 10.0),
 
-        rel_standing_envs=0.3,
+        rel_standing_envs=0.2,
         debug_vis=True,
 
         ranges=UniformVelocityCommandCfg.Ranges(
-            lin_vel_x=(-0.2, 0.2), lin_vel_y=(-0.2, 0.2), ang_vel_z=(-0.1, 0.1)
-        )
-    )
+            lin_vel_x=(-0.1, 0.1), lin_vel_y=(-0.1, 0.1), ang_vel_z=(-0.1, 0.1)
+        ),
+        limit_ranges=UniformVelocityCommandCfg.Ranges(
+            lin_vel_x=(-0.4, 0.4), lin_vel_y=(-0.4, 0.4), ang_vel_z=(-0.1, 0.1)
+        ),
 
+        period=0.8,
+        offset=(0.0, 0.5),
+        threshold=0.55
+    )
 
 @configclass
 class ActionsCfg:
     """Action specifications for the MDP."""
-
     JointPositionAction = mdp.JointPositionActionCfg(
         asset_name="robot", joint_names=[".*"], scale=0.25, use_default_offset=True #, clip={".*": (-5.0, 5.0)}
     )
@@ -288,12 +293,59 @@ class RewardsCfg:
     penalize_lin_vel_z = RewTerm(func=mdp.lin_vel_z_l2, weight=-2.0)
     penalize_ang_vel_xy = RewTerm(func=mdp.ang_vel_xy_l2, weight=-0.15)
 
-    penalize_joint_vel = RewTerm(func=mdp.joint_vel_l2, weight=-0.003) # weight=-0.001)
-    penalize_joint_acc = RewTerm(func=mdp.joint_acc_l2, weight=-7.5e-7) # weight=-2.5e-7)
-    penalize_action_rate = RewTerm(func=mdp.action_rate_l2, weight=-0.05)
+    penalize_ankle_joint_vel = RewTerm(func=mdp.joint_vel_l2,
+                          weight=-2e-3,
+                          params={"asset_cfg":
+                                  SceneEntityCfg("robot", joint_names=".*ankle_.*")})
+
+    penalize_yaw_joint_vel = RewTerm(func=mdp.joint_vel_l2,
+                          weight=-1e-3,
+                          params={"asset_cfg":
+                                  SceneEntityCfg("robot", joint_names=[".*hip_yaw.*", ".*waist_yaw.*"])})
+
+    penalize_pitch_joint_vel = RewTerm(func=mdp.joint_vel_l2,
+                          weight=-1e-3,
+                          params={"asset_cfg":
+                                  SceneEntityCfg("robot", joint_names=[".*hip_pitch.*",
+                                                                       ".*hip_roll.*",
+                                                                       ".*knee_pitch.*"])})
+
+    penalize_ankle_joint_acc = RewTerm(func=mdp.joint_acc_l2,
+                          weight=-2.5e-6,
+                          params={"asset_cfg":
+                                  SceneEntityCfg("robot", joint_names=".*ankle_.*")})
+
+    penalize_yaw_joint_acc = RewTerm(func=mdp.joint_acc_l2,
+                          weight=-7.5e-7,
+                          params={"asset_cfg":
+                                  SceneEntityCfg("robot", joint_names=[".*hip_yaw.*", ".*waist_yaw.*"])})
+
+    penalize_pitch_joint_acc = RewTerm(func=mdp.joint_acc_l2,
+                          weight=-6.5e-7,
+                          params={"asset_cfg":
+                                  SceneEntityCfg("robot", joint_names=[".*hip_pitch.*",
+                                                                       ".*hip_roll.*",
+                                                                       ".*knee_pitch.*"])})
+
+
     penalize_ankle_action_rate = RewTerm(func=rewards.action_rate_l2_ext,
-                          weight=-0.03,
-                          params={"asset_cfg": SceneEntityCfg("robot", joint_names=".*ankle_.*")})
+                          weight=-7e-2,
+                          params={"asset_cfg":
+                                  SceneEntityCfg("robot", joint_names=".*ankle_.*")})
+
+    penalize_yaw_action_rate = RewTerm(func=rewards.action_rate_l2_ext,
+                          weight=-5e-2,
+                          params={"asset_cfg":
+                                  SceneEntityCfg("robot",
+                                                 joint_names=[".*hip_yaw.*", ".*waist_yaw.*"])})
+
+    penalize_pitch_action_rate = RewTerm(func=rewards.action_rate_l2_ext,
+                          weight=-3.5e-2,
+                          params={"asset_cfg":
+                                  SceneEntityCfg("robot",
+                                                 joint_names=[".*hip_pitch.*",
+                                                              ".*hip_roll.*",
+                                                              ".*knee_pitch.*"])})
 
     penalize_dof_pos_limits = RewTerm(func=mdp.joint_pos_limits, weight=-8.0)
 
@@ -318,6 +370,13 @@ class RewardsCfg:
                     ".*_hip_roll.*",
                     ".*_ankle_pitch.*"])},
     )
+    penalize_joint_deviation_pitch = RewTerm(
+        func=mdp.joint_deviation_l1,
+        weight=-7e-2,
+        params={"asset_cfg": SceneEntityCfg("robot", joint_names=[
+                    ".*hip_pitch.*",
+                    ".*knee_pitch.*"])},
+    )
 
     penalize_stand_deviation = RewTerm(
         func=rewards.stand_deviation_l1,
@@ -337,9 +396,6 @@ class RewardsCfg:
         func=rewards.feet_gait,
         weight=0.5,
         params={
-            "period": 0.8,
-            "offset": [0.0, 0.5],
-            "threshold": 0.55,
             "command_name": "stomp_command",
             "sensor_cfg": SceneEntityCfg(
                 "contact_forces",
@@ -359,13 +415,13 @@ class RewardsCfg:
         func=rewards.foot_clearance_reward,
         weight=2.5,
         params={
-            "period": 0.8,
-            "offset": [0.0, 0.5],
-            "threshold": 0.55,
             "command_name": "stomp_command",
 
-            "target_height": 0.136,
-            "std": 0.05,
+            "std": 0.03,
+
+            "max_height": 0.136,
+            "target_height": 0.03,
+            "speed": 1.1,
             "asset_cfg": SceneEntityCfg(
                 "robot",
                 body_names=["left_foot_contact_point", "right_foot_contact_point"],
@@ -402,13 +458,22 @@ class CurriculumCfg:
     terrain_levels = CurrTerm(func=curriculums.terrain_levels_vel,
         params={"command_name": "stomp_command", "asset_cfg": SceneEntityCfg("robot")}
     )
-    push_levels = CurrTerm(func=curriculums.squat_push_levels,
+    lin_vel_cmd_levels = CurrTerm(curriculums.lin_vel_cmd_levels,
+        params={"command_name": "stomp_command",
+                "reward_term_name": "track_lin_vel_xy"} )
+
+    push_levels = CurrTerm(func=curriculums.push_levels,
         params={
                 "command_term_name": "stomp_command",
                 "event_term_name": "push_robot",
                 "reward_term_name": "track_lin_vel_xy",
             })
 
+    height_levels = CurrTerm(func=curriculums.feet_clearance_levels,
+        params={
+                "command_term_name": "stomp_command",
+                "reward_term_name": "reward_feet_clearance",
+            })
 
 
 @configclass

@@ -30,6 +30,9 @@ class StompCommand(UniformVelocityCommand):
         self.average_episode_length = 0
         self.episode_length_buffer = torch.zeros(self.num_envs, dtype=torch.long, device=self.device)
 
+        self.feet_global_phases = torch.zeros((self.num_envs, 2), dtype=torch.float, device=self.device)
+        self.feet_swing_phases = torch.zeros((self.num_envs, 2), dtype=torch.float, device=self.device)
+
         self.metrics.pop("error_vel_yaw")
 
     def _update_metrics(self):
@@ -62,6 +65,24 @@ class StompCommand(UniformVelocityCommand):
         self.vel_command_b[:, 2] = 1
         self.vel_command_b[self.is_standing_env, 2] = 0
 
+        ##
+        global_phase = ((self.episode_length_buffer * self._env.step_dt) % self.cfg.period / self.cfg.period).unsqueeze(1)
+        phases = []
+        for offset_ in self.cfg.offset:
+            phase = (global_phase + offset_) % 1.0
+            phases.append(phase)
+
+        phases = torch.cat(phases, dim=-1)
+        phases[self.is_standing_env] = 0
+
+        self.feet_global_phases[...] = phases #   * torch.pi * 2
+        ##
+        swing_phase = torch.clamp_min(phases - self.cfg.threshold, min=0.0) / (1 - self.cfg.threshold)
+        swing_phase[self.is_standing_env] = 0
+
+        self.feet_swing_phases[...] = swing_phase #  * torch.pi
+
+
     def compute(self, dt: float):
         self.episode_length_buffer[:] += 1
         super().compute(dt)
@@ -71,4 +92,8 @@ class StompCommand(UniformVelocityCommand):
 class StompCommandCfg(UniformVelocityCommandCfg):
     class_type: type = StompCommand
 
+    limit_ranges: UniformVelocityCommandCfg.Ranges = MISSING
 
+    period: float = 0.8
+    offset: tuple[float, float] = (0.0, 0.5)
+    threshold: float = 0.55

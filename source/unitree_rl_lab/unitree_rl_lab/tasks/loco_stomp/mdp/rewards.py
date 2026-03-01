@@ -29,6 +29,7 @@ def reward_zero_ang_vel_z_exp(
 
     return reward - ang_vel_z_error * 0.25
 
+
 def action_rate_l2_ext(env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")) -> torch.Tensor:
     """Penalize the rate of change of the actions using L2 squared kernel."""
     return torch.sum(torch.square(env.action_manager.action[:, asset_cfg.joint_ids] - env.action_manager.prev_action[:, asset_cfg.joint_ids]), dim=1)
@@ -59,63 +60,49 @@ def stand_deviation_l1(env: ManagerBasedRLEnv,
     pos_error[is_walking, :] = 0.0
     return torch.sum(torch.abs(pos_error), dim=1)
 
-
 def feet_gait(
     env: ManagerBasedRLEnv,
-    period: float,
-    offset: list[float],
     sensor_cfg: SceneEntityCfg,
-    threshold: float = 0.5,
     command_name="stomp_command",
 ) -> torch.Tensor:
     contact_sensor: ContactSensor = env.scene.sensors[sensor_cfg.name]
     is_contact = contact_sensor.data.current_contact_time[:, sensor_cfg.body_ids] > 0
 
-    global_phase = ((env.episode_length_buf * env.step_dt) % period / period).unsqueeze(1)
-    phases = []
-    for offset_ in offset:
-        phase = (global_phase + offset_) % 1.0
-        phases.append(phase)
-    leg_phase = torch.cat(phases, dim=-1)
-
     cmd: commands.StompCommand = env.command_manager.get_term(command_name)
 
-    is_stance = leg_phase < threshold
-    is_stance[cmd.is_standing_env] = True  # if standing, all legs should be in stance
+    is_stance = cmd.feet_global_phases < cmd.cfg.threshold
 
     reward = ~(is_stance ^ is_contact)
     return torch.sum(reward, dim=-1)
 
 def foot_clearance_reward(
     env: ManagerBasedRLEnv,
-    period: float,
-    offset: list[float],
-    threshold: float,
     command_name: str,
-    asset_cfg: SceneEntityCfg, target_height: float, std: float
+
+    std: float,
+    max_height: float,
+    target_height: float,
+    speed: float,
+
+    asset_cfg: SceneEntityCfg,
 ) -> torch.Tensor:
     """Reward the swinging feet for clearing a specified height off the ground"""
 
-    global_phase = ((env.episode_length_buf * env.step_dt) % period / period).unsqueeze(1)
-    phases = []
-    for offset_ in offset:
-        phase = (global_phase + offset_) % 1.0
-        phases.append(phase)
-
-    swing_phase = torch.clamp_min(torch.cat(phases, dim=-1) - threshold, min=0.0) / (1 - threshold)
-
     cmd: commands.StompCommand = env.command_manager.get_term(command_name)
 
-    swing_phase[cmd.is_standing_env] = 0  # if standing, all legs should be in stance
+    swing_phase = cmd.feet_swing_phases
 
     target_height = torch.sin(swing_phase * torch.pi) * target_height
     target_height = torch.clamp_min(target_height, min=0.0)
 
     asset: Articulation = env.scene[asset_cfg.name]
     feet_z = asset.data.body_pos_w[:, asset_cfg.body_ids, 2]
+    # feet_error = torch.clamp_max(feet_z - target_height, max=0) # allow feet to be higher than target, but penalize if they are lower
     feet_error = feet_z - target_height
-    feet_error = torch.norm(feet_error, dim=-1)
-    return torch.exp(-feet_error / std)
+    feet_error[target_height > 0.008] = torch.clamp_max(feet_error[target_height > 0.008], max=0) # only penalize when target height is above 0 (i.e. during swing phase)
+
+    feet_exp = torch.exp(- torch.abs(feet_error) / std)
+    return torch.mean(feet_exp, dim=-1)
 
 
 def com_zero(
@@ -170,3 +157,4 @@ def com_zero(
 
     total_reward = dist_reward * range_reward
     return total_reward
+

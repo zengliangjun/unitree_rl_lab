@@ -49,10 +49,40 @@ def terrain_levels_vel(
     return torch.mean(terrain.terrain_levels.float())
 
 
-def squat_push_levels(
+def lin_vel_cmd_levels(
     env: ManagerBasedRLEnv,
     env_ids: Sequence[int],
-    command_term_name: str = "squat_command",
+    command_name: str,
+    reward_term_name: str = "track_lin_vel_xy",
+) -> torch.Tensor:
+    command_term = env.command_manager.get_term(command_name)
+    ranges = command_term.cfg.ranges
+    limit_ranges = command_term.cfg.limit_ranges
+
+    reward_term = env.reward_manager.get_term_cfg(reward_term_name)
+    reward = torch.mean(env.reward_manager._episode_sums[reward_term_name][env_ids]) / env.max_episode_length_s
+
+    if env.common_step_counter % env.max_episode_length == 0:
+        if reward > reward_term.weight * 0.8:
+            delta_command = torch.tensor([-0.01, 0.01], device=env.device)
+            ranges.lin_vel_x = torch.clamp(
+                torch.tensor(ranges.lin_vel_x, device=env.device) + delta_command,
+                limit_ranges.lin_vel_x[0],
+                limit_ranges.lin_vel_x[1],
+            ).tolist()
+            ranges.lin_vel_y = torch.clamp(
+                torch.tensor(ranges.lin_vel_y, device=env.device) + delta_command,
+                limit_ranges.lin_vel_y[0],
+                limit_ranges.lin_vel_y[1],
+            ).tolist()
+
+    return torch.tensor(ranges.lin_vel_x[1], device=env.device)
+
+
+def push_levels(
+    env: ManagerBasedRLEnv,
+    env_ids: Sequence[int],
+    command_term_name: str = "stomp_command",
     event_term_name: str = "push_robot",
     reward_term_name: str = "track_squat_pos",
 ) -> torch.Tensor:
@@ -68,7 +98,7 @@ def squat_push_levels(
     reward = torch.mean(env.reward_manager._episode_sums[reward_term_name][env_ids]) / env.max_episode_length_s
 
     if env.common_step_counter % env.max_episode_length == 0:
-        if reward > reward_term.weight * 0.85 and command_term.average_episode_length > env.max_episode_length * 0.96:
+        if reward > reward_term.weight * 0.9 and command_term.average_episode_length > env.max_episode_length * 0.96:
 
             for key in ranges:
                 org = ranges[key]
@@ -83,3 +113,32 @@ def squat_push_levels(
                 ranges[key] = (new_min, new_max)
 
     return torch.tensor(ranges["x"][1], device=env.device)
+
+
+def feet_clearance_levels(
+    env: ManagerBasedRLEnv,
+    env_ids: Sequence[int],
+    command_term_name: str = "stomp_command",
+    reward_term_name: str = "reward_feet_clearance",
+) -> torch.Tensor:
+
+    command_term: commands.StompCommand = env.command_manager.get_term(command_term_name)
+
+    reward_term = env.reward_manager.get_term_cfg(reward_term_name)
+    reward = torch.mean(env.reward_manager._episode_sums[reward_term_name][env_ids]) / env.max_episode_length_s
+
+    max_height: float = reward_term.params["max_height"]
+    target_height: float = reward_term.params["target_height"]
+
+    if env.common_step_counter % env.max_episode_length == 0:
+        if reward > reward_term.weight * 0.8 and command_term.average_episode_length > env.max_episode_length * 0.8:
+
+            speed: float = reward_term.params["speed"]
+
+            target_height *= speed
+
+            target_height = min(target_height, max_height)
+
+            reward_term.params["target_height"] = target_height
+
+    return torch.tensor(target_height / max_height, device=env.device)
