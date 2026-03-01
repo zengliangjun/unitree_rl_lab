@@ -29,6 +29,34 @@ def reward_zero_ang_vel_z_exp(
 
     return reward - ang_vel_z_error * 0.25
 
+def reward_track_pitch(
+    env: ManagerBasedRLEnv,
+    command_name: str,
+
+    std: float,
+
+    max_stomp: float,
+    target_stomp: float,
+    speed: float,
+
+    asset_cfg: SceneEntityCfg,
+) -> torch.Tensor:
+    """Reward the swinging feet for clearing a specified height off the ground"""
+
+    cmd: commands.StompCommand = env.command_manager.get_term(command_name)
+
+    swing_phase = cmd.feet_swing_phases
+
+    target_stomp = torch.sin(swing_phase * torch.pi) * target_stomp
+
+    asset: Articulation = env.scene[asset_cfg.name]
+    stomp = asset.data.joint_pos[:, asset_cfg.joint_ids] - asset.data.default_joint_pos[:, asset_cfg.joint_ids]
+
+    error = stomp - target_stomp
+
+    stomp_exp = torch.exp(- torch.abs(error) / std)
+    return torch.mean(stomp_exp, dim=-1)
+
 
 def action_rate_l2_ext(env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")) -> torch.Tensor:
     """Penalize the rate of change of the actions using L2 squared kernel."""

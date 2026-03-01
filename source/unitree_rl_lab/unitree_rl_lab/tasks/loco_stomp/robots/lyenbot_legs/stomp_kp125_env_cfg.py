@@ -196,10 +196,10 @@ class CommandsCfg:
         debug_vis=True,
 
         ranges=UniformVelocityCommandCfg.Ranges(
-            lin_vel_x=(-0.1, 0.1), lin_vel_y=(-0.1, 0.1), ang_vel_z=(-0.1, 0.1)
+            lin_vel_x=(-0.05, 0.05), lin_vel_y=(-0.1, 0.1), ang_vel_z=(-0.1, 0.1)
         ),
         limit_ranges=UniformVelocityCommandCfg.Ranges(
-            lin_vel_x=(-0.4, 0.4), lin_vel_y=(-0.4, 0.4), ang_vel_z=(-0.1, 0.1)
+            lin_vel_x=(-0.25, 0.25), lin_vel_y=(-0.1, 0.1), ang_vel_z=(-0.1, 0.1)
         ),
 
         period=0.8,
@@ -265,13 +265,46 @@ class RewardsCfg:
     # -- task
     track_lin_vel_xy = RewTerm(
         func=rewards.track_lin_vel_xy_yaw_frame_exp,
-        weight=1.5,
+        weight=1,
         params={"command_name": "stomp_command", "std": math.sqrt(0.09)},
     )
 
     reward_zero_ang_vel_z = RewTerm(
         func=rewards.reward_zero_ang_vel_z_exp,
         weight=0.75, params={"std": math.sqrt(0.09)}
+    )
+    reward_pitch = RewTerm(
+        func=rewards.reward_track_pitch,
+        weight=1,
+        params={
+            "command_name": "stomp_command",
+            "std": math.sqrt(0.01),
+
+            "max_stomp": -0.3,
+            "target_stomp": -0.1,
+            "speed": 1.01,
+
+            "asset_cfg": SceneEntityCfg("robot", joint_names=[
+                    "left_hip_pitch_joint",
+                    "right_hip_pitch_joint"])},
+    )
+
+    reward_feet_clearance = RewTerm(
+        func=rewards.foot_clearance_reward,
+        weight=1,
+        params={
+            "command_name": "stomp_command",
+
+            "std": 0.03,
+
+            "max_height": 0.136,
+            "target_height": 0.03,
+            "speed": 1.1,
+            "asset_cfg": SceneEntityCfg(
+                "robot",
+                body_names=["left_foot_contact_point", "right_foot_contact_point"],
+                preserve_order=True),
+        },
     )
 
     alive = RewTerm(func=mdp.is_alive, weight=0.15)
@@ -370,13 +403,6 @@ class RewardsCfg:
                     ".*_hip_roll.*",
                     ".*_ankle_pitch.*"])},
     )
-    penalize_joint_deviation_pitch = RewTerm(
-        func=mdp.joint_deviation_l1,
-        weight=-7e-2,
-        params={"asset_cfg": SceneEntityCfg("robot", joint_names=[
-                    ".*hip_pitch.*",
-                    ".*knee_pitch.*"])},
-    )
 
     penalize_stand_deviation = RewTerm(
         func=rewards.stand_deviation_l1,
@@ -409,23 +435,6 @@ class RewardsCfg:
         params={
             "asset_cfg": SceneEntityCfg("robot", body_names=".*ankle_roll.*"),
             "sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*ankle_roll.*"),
-        },
-    )
-    reward_feet_clearance = RewTerm(
-        func=rewards.foot_clearance_reward,
-        weight=2.5,
-        params={
-            "command_name": "stomp_command",
-
-            "std": 0.03,
-
-            "max_height": 0.136,
-            "target_height": 0.03,
-            "speed": 1.1,
-            "asset_cfg": SceneEntityCfg(
-                "robot",
-                body_names=["left_foot_contact_point", "right_foot_contact_point"],
-                preserve_order=True),
         },
     )
 
@@ -475,6 +484,11 @@ class CurriculumCfg:
                 "reward_term_name": "reward_feet_clearance",
             })
 
+    pitch_levels = CurrTerm(func=curriculums.track_pitch_levels,
+        params={
+                "command_term_name": "stomp_command",
+                "reward_term_name": "reward_pitch",
+            })
 
 @configclass
 class RobotEnvCfg(ManagerBasedRLEnvCfg):

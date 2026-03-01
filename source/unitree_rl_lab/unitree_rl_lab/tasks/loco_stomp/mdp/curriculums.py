@@ -142,3 +142,31 @@ def feet_clearance_levels(
             reward_term.params["target_height"] = target_height
 
     return torch.tensor(target_height / max_height, device=env.device)
+
+def track_pitch_levels(
+    env: ManagerBasedRLEnv,
+    env_ids: Sequence[int],
+    command_term_name: str = "stomp_command",
+    reward_term_name: str = "reward_pitch",
+) -> torch.Tensor:
+
+    command_term: commands.StompCommand = env.command_manager.get_term(command_term_name)
+
+    reward_term = env.reward_manager.get_term_cfg(reward_term_name)
+    reward = torch.mean(env.reward_manager._episode_sums[reward_term_name][env_ids]) / env.max_episode_length_s
+
+    max_stomp: float = reward_term.params["max_stomp"]
+    target_stomp: float = reward_term.params["target_stomp"]
+
+    if env.common_step_counter % env.max_episode_length == 0:
+        if reward > reward_term.weight * 0.8 and command_term.average_episode_length > env.max_episode_length * 0.8:
+
+            speed: float = reward_term.params["speed"]
+
+            target_stomp *= speed
+
+            target_stomp = max(target_stomp, max_stomp)
+
+            reward_term.params["target_stomp"] = target_stomp
+
+    return torch.tensor(target_stomp / max_stomp, device=env.device)
