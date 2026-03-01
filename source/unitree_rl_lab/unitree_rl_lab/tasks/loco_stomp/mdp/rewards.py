@@ -86,7 +86,6 @@ def feet_gait(
     reward = ~(is_stance ^ is_contact)
     return torch.sum(reward, dim=-1)
 
-
 def foot_clearance_reward(
     env: ManagerBasedRLEnv,
     period: float,
@@ -102,19 +101,72 @@ def foot_clearance_reward(
     for offset_ in offset:
         phase = (global_phase + offset_) % 1.0
         phases.append(phase)
-    leg_phase = torch.cat(phases, dim=-1)
+
+    swing_phase = torch.clamp_min(torch.cat(phases, dim=-1) - threshold, min=0.0) / (1 - threshold)
 
     cmd: commands.StompCommand = env.command_manager.get_term(command_name)
 
-    is_stance = leg_phase < threshold
-    is_stance[cmd.is_standing_env] = True  # if standing, all legs should be in stance
+    swing_phase[cmd.is_standing_env] = 0  # if standing, all legs should be in stance
 
-    target_height = torch.sin((leg_phase + 0.5) * 2 * torch.pi) * target_height
+    target_height = torch.sin(swing_phase * torch.pi) * target_height
     target_height = torch.clamp_min(target_height, min=0.0)
-    target_height[cmd.is_standing_env] = 0
 
     asset: Articulation = env.scene[asset_cfg.name]
-    error = torch.norm(asset.data.body_pos_w[:, asset_cfg.body_ids, 2] - target_height, dim=-1)
-    return torch.exp(-error / std)
+    feet_z = asset.data.body_pos_w[:, asset_cfg.body_ids, 2]
+    feet_error = feet_z - target_height
+    feet_error = torch.norm(feet_error, dim=-1)
+    return torch.exp(-feet_error / std)
 
 
+def com_zero(
+        env: ManagerBasedRLEnv,
+        asset_cfg: SceneEntityCfg,
+        std: float
+    ) -> torch.Tensor:
+
+    std = max(std, 0.1)
+
+    asset: Articulation = env.scene[asset_cfg.name]
+    pos = asset.data.body_pos_w[:, asset_cfg.body_ids]
+
+    quat_w = torch.repeat_interleave(asset.data.root_link_quat_w[:, None, :], pos.shape[1], dim=1)
+
+    try:
+        pos_b = math_utils.quat_apply_inverse(quat_w, pos)
+        # pos = torch.mean(pos_b[:, :, :2], dim=1)
+        com_b = math_utils.quat_apply_inverse(asset.data.root_link_quat_w, asset.data.root_com_pos_w)
+    except:
+        pos_b = math_utils.quat_rotate_inverse(quat_w, pos)
+        # pos = torch.mean(pos_b[:, :, :2], dim=1)
+        com_b = math_utils.quat_rotate_inverse(asset.data.root_link_quat_w, asset.data.root_com_pos_w)
+
+    left_ankle = pos_b[:, 0, :2]
+    right_ankle = pos_b[:, 1, :2]
+
+    support_vec = right_ankle - left_ankle
+    support_len = torch.linalg.norm(support_vec, dim=1)
+    support_len = torch.clamp(support_len, min=0.05)
+
+    support_dir = support_vec / (support_len.unsqueeze(1) + 1e-6)
+    normal_vec = torch.stack([-support_dir[:, 1], support_dir[:, 0]], dim=1)
+
+    com_proj = com_b[:, :2] - left_ankle
+    com_dist = torch.sum(com_proj * normal_vec, dim=1)
+    com_dist = torch.clamp(com_dist, min=-0.5, max=0.5)
+
+    com_along = torch.sum(com_proj * support_dir, dim=1)
+
+    margin = support_len * 0.1
+    # stable = (com_along >= -margin) & (com_along <= (support_len + margin))
+
+    dist_reward = torch.exp(- torch.square((com_dist * 2 - std) / std))
+    # dist_reward = torch.exp(- torch.abs(com_dist) / std)
+    # range_reward = torch.where(stable, 1.0, 0.2)
+    range_reward = torch.sigmoid(
+                (com_along + margin) / (0.1 + support_len)
+            ) * torch.sigmoid(
+                (support_len + margin - com_along) / (0.1 + support_len)
+            )
+
+    total_reward = dist_reward * range_reward
+    return total_reward

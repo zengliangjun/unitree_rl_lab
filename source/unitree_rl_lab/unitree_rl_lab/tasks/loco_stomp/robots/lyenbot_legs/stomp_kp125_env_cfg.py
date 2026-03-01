@@ -22,7 +22,7 @@ from isaaclab.envs import mdp
 
 
 from unitree_rl_lab.assets.robots.lyenbot_legs_kp125 import LYENBOT_CFG as ROBOT_CFG
-from unitree_rl_lab.tasks.loco_stomp.mdp import commands, rewards, curriculums
+from unitree_rl_lab.tasks.loco_stomp.mdp import commands, rewards, curriculums, events
 from isaaclab.envs.mdp import UniformVelocityCommandCfg
 
 
@@ -175,10 +175,13 @@ class EventCfg:
 
     # interval
     push_robot = EventTerm(
-        func=mdp.push_by_setting_velocity,
+        func=events.push_by_setting_velocity_with_level,
         mode="interval",
-        interval_range_s=(5.0, 5.0),
-        params={"velocity_range": {"x": (-0.5, 0.5), "y": (-0.5, 0.5)}},
+        interval_range_s=(3.0, 8.0),
+        params={
+            "velocity_range": {"x": (-0.051, 0.051), "y": (-0.051, 0.051)},
+            "max_velocity_range": {"x": (-0.5, 0.5), "y": (-0.5, 0.5)},
+            "speed": 1.1},
     )
 
 
@@ -257,16 +260,29 @@ class RewardsCfg:
     # -- task
     track_lin_vel_xy = RewTerm(
         func=rewards.track_lin_vel_xy_yaw_frame_exp,
-        weight=1,
-        params={"command_name": "stomp_command", "std": math.sqrt(0.01)},
+        weight=1.5,
+        params={"command_name": "stomp_command", "std": math.sqrt(0.09)},
     )
 
     reward_zero_ang_vel_z = RewTerm(
         func=rewards.reward_zero_ang_vel_z_exp,
-        weight=0.75, params={"std": math.sqrt(0.01)}
+        weight=0.75, params={"std": math.sqrt(0.09)}
     )
 
     alive = RewTerm(func=mdp.is_alive, weight=0.15)
+
+    com_zero = RewTerm(
+        func=rewards.com_zero,
+        weight=0.8,
+        params={"std": 0.12,
+                "asset_cfg":
+                SceneEntityCfg("robot",
+                    body_names=[
+                        "left_ankle_roll_link",
+                        "right_ankle_roll_link"
+                        ],
+                    preserve_order=True)},
+    )
 
     # -- base
     penalize_lin_vel_z = RewTerm(func=mdp.lin_vel_z_l2, weight=-2.0)
@@ -319,7 +335,7 @@ class RewardsCfg:
     # -- feet
     reward_gait = RewTerm(
         func=rewards.feet_gait,
-        weight=0.8,
+        weight=0.5,
         params={
             "period": 0.8,
             "offset": [0.0, 0.5],
@@ -341,18 +357,18 @@ class RewardsCfg:
     )
     reward_feet_clearance = RewTerm(
         func=rewards.foot_clearance_reward,
-        weight=1.0,
+        weight=2.5,
         params={
             "period": 0.8,
             "offset": [0.0, 0.5],
             "threshold": 0.55,
             "command_name": "stomp_command",
 
-            "target_height": 0.1,
-            "std": 0.03,
+            "target_height": 0.136,
+            "std": 0.05,
             "asset_cfg": SceneEntityCfg(
                 "robot",
-                body_names=["left_ankle_roll_link", "right_ankle_roll_link"],
+                body_names=["left_foot_contact_point", "right_foot_contact_point"],
                 preserve_order=True),
         },
     )
@@ -386,6 +402,13 @@ class CurriculumCfg:
     terrain_levels = CurrTerm(func=curriculums.terrain_levels_vel,
         params={"command_name": "stomp_command", "asset_cfg": SceneEntityCfg("robot")}
     )
+    push_levels = CurrTerm(func=curriculums.squat_push_levels,
+        params={
+                "command_term_name": "stomp_command",
+                "event_term_name": "push_robot",
+                "reward_term_name": "track_lin_vel_xy",
+            })
+
 
 
 @configclass
@@ -436,6 +459,6 @@ class RobotPlayEnvCfg(RobotEnvCfg):
         super().__post_init__()
         self.episode_length_s = 60.0
         self.scene.num_envs = 32
-        self.scene.terrain.terrain_generator.num_rows = 4
-        self.scene.terrain.terrain_generator.num_cols = 4
+        self.scene.terrain.terrain_generator.num_rows = 2
+        self.scene.terrain.terrain_generator.num_cols = 2
         self.curriculum = None
