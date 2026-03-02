@@ -7,6 +7,6 @@ gym.register(
     kwargs={
         "env_cfg_entry_point": f"{__name__}.stomp_kp125_env_cfg:RobotEnvCfg",
         "play_env_cfg_entry_point": f"{__name__}.stomp_kp125_env_cfg:RobotPlayEnvCfg",
-        "rsl_rl_cfg_entry_point": f"unitree_rl_lab.tasks.locomotion.agents.rsl_rl_ppo_cfg:BasePPORunnerCfg",
+        "rsl_rl_cfg_entry_point": f"unitree_rl_lab.tasks.loco_stomp.agents.rsl_rl_ppo_cfg:BasePPORunnerCfg",
     },
 )

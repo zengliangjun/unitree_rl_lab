@@ -16,6 +16,17 @@ if TYPE_CHECKING:
 
 from isaaclab_tasks.manager_based.locomotion.velocity.mdp.rewards import track_lin_vel_xy_yaw_frame_exp, feet_slide
 
+
+def reward_zero_lin_vel_xy_exp(
+    env, std: float, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
+) -> torch.Tensor:
+
+    asset: Articulation = env.scene[asset_cfg.name]
+    lin_vel_error = torch.norm(asset.data.root_lin_vel_b[:, :2], dim=1) / std
+    reward = torch.exp(-lin_vel_error)
+
+    return reward - lin_vel_error * 0.25
+
 def reward_zero_ang_vel_z_exp(
     env: ManagerBasedRLEnv,
     std: float,
@@ -47,15 +58,129 @@ def reward_track_pitch(
 
     swing_phase = cmd.feet_swing_phases
 
-    target_stomp = torch.sin(swing_phase * torch.pi) * target_stomp
+    swing_stomp_target = torch.sin(swing_phase * torch.pi) * target_stomp
 
     asset: Articulation = env.scene[asset_cfg.name]
     stomp = asset.data.joint_pos[:, asset_cfg.joint_ids] - asset.data.default_joint_pos[:, asset_cfg.joint_ids]
 
-    error = stomp - target_stomp
+    error = stomp - swing_stomp_target
+    diff = torch.square(error / std)
 
-    stomp_exp = torch.exp(- torch.abs(error) / std)
+    stomp_exp = torch.exp(- diff)
     return torch.mean(stomp_exp, dim=-1)
+
+def penalize_track_pitch(
+    env: ManagerBasedRLEnv,
+    command_name: str,
+
+    std: float,
+
+    max_stomp: float,
+    target_stomp: float,
+    speed: float,
+
+    asset_cfg: SceneEntityCfg,
+) -> torch.Tensor:
+    """Reward the swinging feet for clearing a specified height off the ground"""
+
+    cmd: commands.StompCommand = env.command_manager.get_term(command_name)
+
+    swing_phase = cmd.feet_swing_phases
+
+    swing_stomp_target = torch.sin(swing_phase * torch.pi) * target_stomp
+
+    asset: Articulation = env.scene[asset_cfg.name]
+    stomp = asset.data.joint_pos[:, asset_cfg.joint_ids] - asset.data.default_joint_pos[:, asset_cfg.joint_ids]
+
+    error = stomp - swing_stomp_target
+    diff = torch.square(error / std)
+    return torch.mean(diff, dim=-1)
+
+
+def reward_foot_clearance(
+    env: ManagerBasedRLEnv,
+    command_name: str,
+
+    std: float,
+    max_height: float,
+    target_height: float,
+    speed: float,
+
+    asset_cfg: SceneEntityCfg,
+) -> torch.Tensor:
+    """Reward the swinging feet for clearing a specified height off the ground"""
+
+    cmd: commands.StompCommand = env.command_manager.get_term(command_name)
+
+    swing_phase = cmd.feet_swing_phases
+
+    swing_target0 = torch.sin(swing_phase * torch.pi) * target_height
+    swing_target = torch.clamp_min(swing_target0, min=0.0)
+
+    asset: Articulation = env.scene[asset_cfg.name]
+    feet_z = asset.data.body_pos_w[:, asset_cfg.body_ids, 2] - 0.006  ##
+    # feet_error = torch.clamp_max(feet_z - target_height, max=0) # allow feet to be higher than target, but penalize if they are lower
+    feet_error = feet_z - swing_target
+
+    clamp_mask = swing_target > 0.008
+    feet_error[clamp_mask] = torch.clamp_max(feet_error[clamp_mask], max=0) # only penalize when target height is above 0 (i.e. during swing phase)
+
+    diff = torch.square(feet_error / std)
+
+    feet_exp = torch.exp(- diff)
+    return torch.mean(feet_exp, dim=-1)
+
+
+def penalize_foot_clearance(
+    env: ManagerBasedRLEnv,
+    command_name: str,
+
+    std: float,
+    max_height: float,
+    target_height: float,
+    speed: float,
+
+    asset_cfg: SceneEntityCfg,
+) -> torch.Tensor:
+    """Reward the swinging feet for clearing a specified height off the ground"""
+
+    cmd: commands.StompCommand = env.command_manager.get_term(command_name)
+
+    swing_phase = cmd.feet_swing_phases
+
+    swing_target0 = torch.sin(swing_phase * torch.pi) * target_height
+    swing_target = torch.clamp_min(swing_target0, min=0.0)
+
+    asset: Articulation = env.scene[asset_cfg.name]
+    feet_z = asset.data.body_pos_w[:, asset_cfg.body_ids, 2] - 0.006  ##
+    # feet_error = torch.clamp_max(feet_z - target_height, max=0) # allow feet to be higher than target, but penalize if they are lower
+    feet_error = feet_z - swing_target
+
+    clamp_mask = swing_target > 0.008
+    feet_error[clamp_mask] = torch.clamp_max(feet_error[clamp_mask], max=0) # only penalize when target height is above 0 (i.e. during swing phase)
+
+    diff = torch.square(feet_error / std)
+    return torch.mean(diff, dim=-1)
+
+
+def track_constraint_width(
+    env: ManagerBasedRLEnv,
+    asset_cfg: SceneEntityCfg,
+    target_width: float = 0.2,
+    std: float = 0.04
+) -> torch.Tensor:
+
+    asset: Articulation = env.scene[asset_cfg.name]
+    body_pos_w = asset.data.body_pos_w[:, asset_cfg.body_ids]
+
+    quat_w = torch.repeat_interleave(asset.data.root_link_quat_w[:, None, :], body_pos_w.shape[1], dim=1)
+
+    body_pos = math_utils.quat_apply_inverse(quat_w, body_pos_w)
+
+    #error = torch.square((torch.abs(body_pos[:, 0::2, 1] - body_pos[:, 1::2, 1]) - target_width) / std)
+    error = torch.abs((torch.abs(body_pos[:, 0::2, 1] - body_pos[:, 1::2, 1]) - target_width) / std)
+
+    return - torch.norm(error, dim=-1) + torch.norm(torch.exp(- error), dim = -1)
 
 
 def action_rate_l2_ext(env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")) -> torch.Tensor:
@@ -88,13 +213,13 @@ def stand_deviation_l1(env: ManagerBasedRLEnv,
     pos_error[is_walking, :] = 0.0
     return torch.sum(torch.abs(pos_error), dim=1)
 
-def feet_gait(
+def track_feet_gait(
     env: ManagerBasedRLEnv,
     sensor_cfg: SceneEntityCfg,
     command_name="stomp_command",
 ) -> torch.Tensor:
     contact_sensor: ContactSensor = env.scene.sensors[sensor_cfg.name]
-    is_contact = contact_sensor.data.current_contact_time[:, sensor_cfg.body_ids] > 0
+    is_contact = contact_sensor.data.current_contact_time[:, sensor_cfg.body_ids] > 0.005
 
     cmd: commands.StompCommand = env.command_manager.get_term(command_name)
 
@@ -103,40 +228,27 @@ def feet_gait(
     reward = ~(is_stance ^ is_contact)
     return torch.sum(reward, dim=-1)
 
-def foot_clearance_reward(
+def penalize_feet_gait(
     env: ManagerBasedRLEnv,
-    command_name: str,
-
-    std: float,
-    max_height: float,
-    target_height: float,
-    speed: float,
-
-    asset_cfg: SceneEntityCfg,
+    sensor_cfg: SceneEntityCfg,
+    command_name="stomp_command",
 ) -> torch.Tensor:
-    """Reward the swinging feet for clearing a specified height off the ground"""
+    contact_sensor: ContactSensor = env.scene.sensors[sensor_cfg.name]
+    is_contact = contact_sensor.data.current_contact_time[:, sensor_cfg.body_ids] > 0.005
 
     cmd: commands.StompCommand = env.command_manager.get_term(command_name)
 
-    swing_phase = cmd.feet_swing_phases
+    is_swing = cmd.feet_global_phases > cmd.cfg.threshold
 
-    target_height = torch.sin(swing_phase * torch.pi) * target_height
-    target_height = torch.clamp_min(target_height, min=0.0)
+    penalize = (is_swing ^ is_contact)
+    return torch.sum(penalize, dim=-1)
 
-    asset: Articulation = env.scene[asset_cfg.name]
-    feet_z = asset.data.body_pos_w[:, asset_cfg.body_ids, 2]
-    # feet_error = torch.clamp_max(feet_z - target_height, max=0) # allow feet to be higher than target, but penalize if they are lower
-    feet_error = feet_z - target_height
-    feet_error[target_height > 0.008] = torch.clamp_max(feet_error[target_height > 0.008], max=0) # only penalize when target height is above 0 (i.e. during swing phase)
-
-    feet_exp = torch.exp(- torch.abs(feet_error) / std)
-    return torch.mean(feet_exp, dim=-1)
-
-
-def com_zero(
+def com_support(
         env: ManagerBasedRLEnv,
         asset_cfg: SceneEntityCfg,
-        std: float
+        std: float,
+        command_name: str ="stomp_command",
+        min_reward: float = 0.05,  #
     ) -> torch.Tensor:
 
     std = max(std, 0.1)
@@ -155,34 +267,27 @@ def com_zero(
         # pos = torch.mean(pos_b[:, :, :2], dim=1)
         com_b = math_utils.quat_rotate_inverse(asset.data.root_link_quat_w, asset.data.root_com_pos_w)
 
-    left_ankle = pos_b[:, 0, :2]
-    right_ankle = pos_b[:, 1, :2]
+    ankle = pos_b[:, :, :2]                                 # N * 2 * 2
+    dis = torch.norm(ankle - com_b[:, None, :2], dim=-1)    # N * 2
 
-    support_vec = right_ankle - left_ankle
-    support_len = torch.linalg.norm(support_vec, dim=1)
-    support_len = torch.clamp(support_len, min=0.05)
+    cmd: commands.StompCommand = env.command_manager.get_term(command_name)
+    swing_phases = cmd.feet_global_phases > cmd.cfg.threshold     # N * 2
 
-    support_dir = support_vec / (support_len.unsqueeze(1) + 1e-6)
-    normal_vec = torch.stack([-support_dir[:, 1], support_dir[:, 0]], dim=1)
+    # 判定「单腿摆动、另一条腿支撑」：异或结果为True（形状[N]）
+    # 双足机器人：swing_phases=[True, False]或[False, True] → with_swing=True
+    with_swing = swing_phases[:, 0] ^ swing_phases[:, 1]             # N
+    # 判定支撑相（摆动相取反，形状[N, 2]）
+    support_phases = ~swing_phases     # N * 2
+    # 非单腿支撑时（站立/双腿支撑/双腿摆动），强制支撑相为False
+    support_phases[~with_swing] = False
 
-    com_proj = com_b[:, :2] - left_ankle
-    com_dist = torch.sum(com_proj * normal_vec, dim=1)
-    com_dist = torch.clamp(com_dist, min=-0.5, max=0.5)
+    # 仅保留支撑腿的质心-脚踝距离，摆动腿的距离置0
+    dis[~support_phases] = 0.0
+    # 求和：每个环境实例的支撑腿距离（形状[N]）
+    dis = torch.sum(dis, dim=-1)
 
-    com_along = torch.sum(com_proj * support_dir, dim=1)
-
-    margin = support_len * 0.1
-    # stable = (com_along >= -margin) & (com_along <= (support_len + margin))
-
-    dist_reward = torch.exp(- torch.square((com_dist * 2 - std) / std))
-    # dist_reward = torch.exp(- torch.abs(com_dist) / std)
-    # range_reward = torch.where(stable, 1.0, 0.2)
-    range_reward = torch.sigmoid(
-                (com_along + margin) / (0.1 + support_len)
-            ) * torch.sigmoid(
-                (support_len + margin - com_along) / (0.1 + support_len)
-            )
-
-    total_reward = dist_reward * range_reward
-    return total_reward
-
+    # 指数奖励：距离越小，奖励越接近1
+    reward = torch.exp(- dis / std)
+    # 非单腿支撑时，奖励强制为0
+    reward[~with_swing] = 0
+    return reward

@@ -33,15 +33,16 @@ class StompCommand(UniformVelocityCommand):
         self.feet_global_phases = torch.zeros((self.num_envs, 2), dtype=torch.float, device=self.device)
         self.feet_swing_phases = torch.zeros((self.num_envs, 2), dtype=torch.float, device=self.device)
 
-        self.metrics.pop("error_vel_yaw")
-
     def _update_metrics(self):
         # time for which the command was executed
         max_command_time = self.cfg.resampling_time_range[1]
         max_command_step = max_command_time / self._env.step_dt
         # logs data
         self.metrics["error_vel_xy"] += (
-            torch.norm(self.vel_command_b[:, :2] - self.robot.data.root_lin_vel_b[:, :2], dim=-1) / max_command_step
+            torch.norm(self.robot.data.root_lin_vel_b[:, :2], dim=-1) / max_command_step
+        )
+        self.metrics["error_vel_yaw"] += (
+            torch.abs(self.robot.data.root_ang_vel_b[:, 2]) / max_command_step
         )
 
 
@@ -57,13 +58,13 @@ class StompCommand(UniformVelocityCommand):
 
     def _resample_command(self, env_ids: Sequence[int]):
         super()._resample_command(env_ids)
-        self.vel_command_b[env_ids, 2] = 1
-        self.vel_command_b[self.is_standing_env, 2] = 0
+        self.vel_command_b[env_ids, :] = 1
+        self.vel_command_b[self.is_standing_env, :] = 0
 
     def _update_command(self):
         super()._update_command()
-        self.vel_command_b[:, 2] = 1
-        self.vel_command_b[self.is_standing_env, 2] = 0
+        self.vel_command_b[:, :] = 1
+        self.vel_command_b[self.is_standing_env, :] = 0
 
         ##
         global_phase = ((self.episode_length_buffer * self._env.step_dt) % self.cfg.period / self.cfg.period).unsqueeze(1)
