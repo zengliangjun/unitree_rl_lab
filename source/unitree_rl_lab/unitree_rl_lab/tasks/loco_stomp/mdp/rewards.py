@@ -14,7 +14,7 @@ from unitree_rl_lab.tasks.loco_stomp.mdp import commands
 if TYPE_CHECKING:
     from isaaclab.envs import ManagerBasedRLEnv
 
-from isaaclab_tasks.manager_based.locomotion.velocity.mdp.rewards import track_lin_vel_xy_yaw_frame_exp, feet_slide
+from isaaclab_tasks.manager_based.locomotion.velocity.mdp.rewards import track_lin_vel_xy_yaw_frame_exp
 
 
 def reward_zero_lin_vel_xy_exp(
@@ -290,4 +290,18 @@ def com_support(
     reward = torch.exp(- dis / std)
     # 非单腿支撑时，奖励强制为0
     reward[~with_swing] = 0
+    return reward
+
+
+def feet_slide(env,
+    command_name: str = "stomp_command",
+    asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")) -> torch.Tensor:
+
+    cmd: commands.StompCommand = env.command_manager.get_term(command_name)
+    stand_phases = cmd.feet_global_phases < cmd.cfg.threshold     # N * 2
+
+    asset = env.scene[asset_cfg.name]
+
+    body_vel = asset.data.body_lin_vel_w[:, asset_cfg.body_ids]
+    reward = torch.sum(body_vel.norm(dim=-1) * stand_phases.float(), dim= -1)
     return reward
