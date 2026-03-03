@@ -233,7 +233,7 @@ class ObservationsCfg:
         # gait_phase = ObsTerm(func=mdp.gait_phase, params={"period": 0.8})
 
         def __post_init__(self):
-            self.history_length = 5
+            self.history_length = 10
             self.enable_corruption = True
             self.concatenate_terms = True
 
@@ -250,10 +250,10 @@ class ObservationsCfg:
         joint_pos_rel = ObsTerm(func=mdp.joint_pos_rel)
         joint_vel_rel = ObsTerm(func=mdp.joint_vel_rel, scale=0.05)
         last_action = ObsTerm(func=mdp.last_action)
-        phase = ObsTerm(func=observations.gait_phase, params={"command_name": "stomp_command"})
+        # phase = ObsTerm(func=observations.gait_phase, params={"command_name": "stomp_command"})
 
         def __post_init__(self):
-            self.history_length = 5
+            self.history_length = 10
 
     # privileged observations
     critic: CriticCfg = CriticCfg()

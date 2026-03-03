@@ -33,6 +33,20 @@ class StompCommand(UniformVelocityCommand):
         self.feet_global_phases = torch.zeros((self.num_envs, 2), dtype=torch.float, device=self.device)
         self.feet_swing_phases = torch.zeros((self.num_envs, 2), dtype=torch.float, device=self.device)
 
+    @property
+    def command(self) -> torch.Tensor:
+        """The desired base velocity command in the base frame. Shape is (num_envs, 3)."""
+        global_phase = self.feet_global_phases
+        swing_phase = self.feet_swing_phases
+
+        sin_phase = torch.sin(global_phase * torch.pi * 2.0)
+        cos_phase = torch.cos(global_phase * torch.pi * 2.0)
+
+        swing_sin_phase = torch.sin(swing_phase * torch.pi)
+        swing_cos_phase = torch.cos(swing_phase * torch.pi)
+
+        return torch.cat([sin_phase, cos_phase, swing_sin_phase, swing_cos_phase], dim=-1)
+
     def _update_metrics(self):
         # time for which the command was executed
         max_command_time = self.cfg.resampling_time_range[1]
