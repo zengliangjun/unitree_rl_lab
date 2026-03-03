@@ -349,6 +349,7 @@ class RewardsCfg:
         params={
                 "command_name": "stomp_command",
                 "std": 0.06,
+                "target_width": 0.232,
                 "asset_cfg":
                 SceneEntityCfg("robot",
                     body_names=[
@@ -389,7 +390,7 @@ class RewardsCfg:
                                   SceneEntityCfg("robot", joint_names=[".*hip_yaw.*", ".*waist_yaw.*"])})
 
     penalize_pitch_joint_vel = RewTerm(func=mdp.joint_vel_l2,
-                          weight=-3e-5,
+                          weight=-6e-4,
                           params={"asset_cfg":
                                   SceneEntityCfg("robot", joint_names=[".*hip_pitch.*",
                                                                        ".*hip_roll.*",
@@ -406,7 +407,7 @@ class RewardsCfg:
                                   SceneEntityCfg("robot", joint_names=[".*hip_yaw.*", ".*waist_yaw.*"])})
 
     penalize_pitch_joint_acc = RewTerm(func=mdp.joint_acc_l2,
-                          weight=-1.5e-8,
+                          weight=-3.5e-8,
                           params={"asset_cfg":
                                   SceneEntityCfg("robot", joint_names=[".*hip_pitch.*",
                                                                        ".*hip_roll.*",
@@ -414,18 +415,18 @@ class RewardsCfg:
 
 
     penalize_ankle_action_rate = RewTerm(func=rewards.action_rate_l2_ext,
-                          weight=-2.5e-3,
+                          weight=-3.5e-3,
                           params={"asset_cfg":
                                   SceneEntityCfg("robot", joint_names=".*ankle_.*")})
 
     penalize_yaw_action_rate = RewTerm(func=rewards.action_rate_l2_ext,
-                          weight=-5e-2,
+                          weight=-6e-2,
                           params={"asset_cfg":
                                   SceneEntityCfg("robot",
                                                  joint_names=[".*hip_yaw.*", ".*waist_yaw.*"])})
 
     penalize_pitch_action_rate = RewTerm(func=rewards.action_rate_l2_ext,
-                          weight=-1.5e-3,
+                          weight=-3.5e-3,
                           params={"asset_cfg":
                                   SceneEntityCfg("robot",
                                                  joint_names=[".*hip_pitch.*",
@@ -488,6 +489,16 @@ class RewardsCfg:
             "command_name": "stomp_command",
             "sensor_cfg": SceneEntityCfg(
                 "contact_forces",
+                body_names=["left_ankle_roll_link", "right_ankle_roll_link"],
+                preserve_order=True),
+        },
+    )
+    reward_euler = RewTerm(
+        func=rewards.reward_euler,
+        weight=0.35,
+        params={
+            "asset_cfg": SceneEntityCfg(
+                "robot",
                 body_names=["left_ankle_roll_link", "right_ankle_roll_link"],
                 preserve_order=True),
         },

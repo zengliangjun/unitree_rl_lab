@@ -247,6 +247,7 @@ def com_support(
         env: ManagerBasedRLEnv,
         asset_cfg: SceneEntityCfg,
         std: float,
+        target_width: float = 0.2,
         command_name: str ="stomp_command",
         min_reward: float = 0.05,  #
     ) -> torch.Tensor:
@@ -271,23 +272,27 @@ def com_support(
     dis = torch.norm(ankle - com_b[:, None, :2], dim=-1)    # N * 2
 
     cmd: commands.StompCommand = env.command_manager.get_term(command_name)
-    swing_phases = cmd.feet_global_phases > cmd.cfg.threshold     # N * 2
+    swing_dis = (1 - torch.sin(cmd.feet_swing_phases * torch.pi)) * target_width *  0.5
+
+    diff = torch.abs(dis - swing_dis) / std
+
+    swing_status = cmd.feet_global_phases > cmd.cfg.threshold     # N * 2
 
     # 判定「单腿摆动、另一条腿支撑」：异或结果为True（形状[N]）
-    # 双足机器人：swing_phases=[True, False]或[False, True] → with_swing=True
-    with_swing = swing_phases[:, 0] ^ swing_phases[:, 1]             # N
+    # 双足机器人：swing_status=[True, False]或[False, True] → with_swing=True
+    with_swing = swing_status[:, 0] ^ swing_status[:, 1]             # N
     # 判定支撑相（摆动相取反，形状[N, 2]）
-    support_phases = ~swing_phases     # N * 2
+    support_phases = ~swing_status     # N * 2
     # 非单腿支撑时（站立/双腿支撑/双腿摆动），强制支撑相为False
     support_phases[~with_swing] = False
 
     # 仅保留支撑腿的质心-脚踝距离，摆动腿的距离置0
-    dis[~support_phases] = 0.0
+    diff[~support_phases] = 0.0
     # 求和：每个环境实例的支撑腿距离（形状[N]）
-    dis = torch.sum(dis, dim=-1)
+    diff = torch.sum(diff, dim=-1)
 
     # 指数奖励：距离越小，奖励越接近1
-    reward = torch.exp(- dis / std)
+    reward = torch.exp(- diff / std)
     # 非单腿支撑时，奖励强制为0
     reward[~with_swing] = 0
     return reward
@@ -305,3 +310,36 @@ def feet_slide(env,
     body_vel = asset.data.body_lin_vel_w[:, asset_cfg.body_ids]
     reward = torch.sum(body_vel.norm(dim=-1) * stand_phases.float(), dim= -1)
     return reward
+
+
+def reward_euler(env: ManagerBasedRLEnv,
+    asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")):
+    """
+    Calculates the reward for maintaining a flat base orientation. It penalizes deviation
+    from the desired base orientation using the base euler angles and the projected gravity vector.
+
+    Args:
+        env (ManagerBasedRLEnv): The environment instance, which contains the simulation scene
+            and provides access to the assets and their states.
+        asset_cfg (SceneEntityCfg): Configuration for the asset whose orientation is being evaluated.
+            Defaults to a configuration with the name "robot".
+
+    Returns:
+        torch.Tensor: The calculated reward value, which is a combination of penalties for
+        deviations in Euler angles and the projected gravity vector.
+    """
+    # Extract the asset from the environment using the provided configuration
+    asset: Articulation = env.scene[asset_cfg.name]
+
+    # Get the root quaternion of the asset
+    quat = asset.data.body_quat_w[:, asset_cfg.body_ids]  # Assuming the root link is the first body in the asset
+
+    # Convert the quaternion to Euler angles (roll, pitch, yaw)
+    roll0, pitch0, yaw = math_utils.euler_xyz_from_quat(quat[:, 0, :], wrap_to_2pi=True)  # Assuming the root link is the first body in the asset
+    roll1, pitch1, yaw = math_utils.euler_xyz_from_quat(quat[:, 1, :], wrap_to_2pi=True)  # Assuming the root link is the first body in the asset
+
+    euler_mismatch0 = torch.exp(-(torch.abs(roll0) + torch.abs(pitch0)) * 10)
+    euler_mismatch1 = torch.exp(-(torch.abs(roll1) + torch.abs(pitch1)) * 10)
+
+    # Combine the two mismatch values into a single reward (average of both components)
+    return (euler_mismatch0 + euler_mismatch1) / 2.
