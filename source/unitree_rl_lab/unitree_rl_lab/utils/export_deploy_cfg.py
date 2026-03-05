@@ -71,6 +71,20 @@ def export_deploy_cfg(env: ManagerBasedRLEnv, log_dir):
         cfg["commands"]["squat_command"]["left_knee_id"] = left_knee_id
         cfg["commands"]["squat_command"]["right_knee_id"] = right_knee_id
 
+    elif hasattr(env.cfg.commands, "stomp_command"):  # some environments do not have base_velocity command
+        # cfg["commands"]["stomp_command"] = {}
+        items = {}
+        for item_name in ["period", "offset", "threshold"]:
+            value = getattr(env.cfg.commands.stomp_command, item_name)
+            if isinstance(value, float):
+                items[item_name] = value
+            elif isinstance(value, tuple):
+                items[item_name] = list(value)
+            else:
+                raise ValueError(f"Unsupported type for stomp_command item {item_name}: {type(value)}")
+
+        cfg["commands"]["stomp_command"] = items
+
     # --- actions ---
     action_names = env.action_manager.active_terms
     action_terms = zip(action_names, env.action_manager._terms.values())
