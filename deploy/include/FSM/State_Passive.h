@@ -104,10 +104,18 @@ public:
             motor.dq() = 0;
             motor.tau() = 0;
         }
+#ifdef DEBUGSTREAM
+        FSMState::enter();
+#endif
     }
 
 
 #ifdef DEBUGSTREAM
+    void exit()
+    {
+        FSMState::exit();
+    }
+
     void pre_run()
     {
         FSMState::pre_run();
@@ -133,38 +141,58 @@ public:
     void run()
     {
 #ifdef DEBUGSTREAM
+
+        if (false) {
+            int max = 250;
+            for(int i(0); i < lowcmd->msg_.motor_cmd().size(); ++i)
+            {
+                lowcmd->msg_.motor_cmd()[i].q() = lowstate->msg_.motor_state()[i].q();
+            }
+
+            float q = cos(control_times / max  * 3.14159 * 2) * 7.5 / (180 / 3.14159);
+            lowcmd->msg_.motor_cmd()[dump_data_type].q() = q;
+
+            std::cout << " motor: " << dump_data_type << " times: " << control_times << " q: " << q << std::endl;
+            control_times ++;
+            control_times %= max;
+
+            return;
+        }
+
+
         if (control_times >= control_data_.size() || !update_q) {
             for(int i(0); i < lowcmd->msg_.motor_cmd().size(); ++i)
             {
                 lowcmd->msg_.motor_cmd()[i].q() = lowstate->msg_.motor_state()[i].q();
             }
         } else {
+            std::vector<float>& _data = control_data_[control_times];
+            for(int motor_id(0); motor_id < _data.size(); ++motor_id)
+            {
+                lowcmd->msg_.motor_cmd()[motor_id].q() = _data[motor_id];
+            }
+            control_times ++;
+        }
 
+        {
             std::stringstream state_stream;
             std::stringstream control_stream;
 
             state_stream << std::right << std::fixed << std::setprecision(4);
             control_stream << std::right << std::fixed << std::setprecision(4);
 
-            state_stream << "Squat_state: ";
-            control_stream << "Squat_control: ";
+            state_stream << "RLBase_state: ";
+            control_stream << "RLBase_control: ";
+            for(int i(0); i < 13; i++) {
 
-            std::vector<float>& _data = control_data_[control_times];
-            for(int motor_id(0); motor_id < _data.size(); ++motor_id)
-            {
-                int control_id = motor2controlmap_[motor_id];
-                lowcmd->msg_.motor_cmd()[motor_id].q() = _data[control_id];
-
-                state_stream << std::setw(8) << lowstate->msg_.motor_state()[motor_id].q()<< " ";
-                control_stream << std::setw(8) << _data[control_id]<< " ";
+                state_stream << std::setw(8) << lowstate->msg_.motor_state()[i].q()<< " ";
+                control_stream << std::setw(8) << lowcmd->msg_.motor_cmd()[i].q() << " ";
             }
-
             state_stream << std::endl;
             state_stream << control_stream.str() << std::endl;
-            std::cout << state_stream.str();
-
-            control_times ++;
+            debug_stream_ << state_stream.str();
         }
+
 #else
         for(int i(0); i < lowcmd->msg_.motor_cmd().size(); ++i)
         {

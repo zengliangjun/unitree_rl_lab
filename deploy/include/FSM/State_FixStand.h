@@ -9,8 +9,8 @@
 class State_FixStand : public FSMState
 {
 public:
-    State_FixStand(int state, std::string state_string = "FixStand") 
-    : FSMState(state, state_string) 
+    State_FixStand(int state, std::string state_string = "FixStand")
+    : FSMState(state, state_string)
     {
         ts_ = param::config["FSM"]["FixStand"]["ts"].as<std::vector<float>>();
         qs_ = param::config["FSM"]["FixStand"]["qs"].as<std::vector<std::vector<float>>>();
@@ -38,16 +38,39 @@ public:
         }
         qs_[0] = q0;
         t0_ = (double)unitree::common::GetCurrentTimeMillisecond() * 1e-3;
+
+#ifdef DEBUGSTREAM
+        FSMState::enter();
+#endif
     }
+
+#ifdef DEBUGSTREAM
+    void exit()
+    {
+        FSMState::exit();
+    }
+#endif
 
     void run()
     {
         float t = (double)unitree::common::GetCurrentTimeMillisecond() * 1e-3 - t0_;
         auto q = linear_interpolate(t, ts_, qs_);
-        
+
         for(int i(0); i < q.size(); ++i) {
             lowcmd->msg_.motor_cmd()[i].q() = q[i];
         }
+#ifdef DEBUGSTREAM
+    std::stringstream state_stream;
+    state_stream << std::right << std::fixed << std::setprecision(4);
+
+    state_stream << "Stand_state: ";
+    for(int i(0); i < q.size(); i++) {
+        state_stream << std::setw(8) << lowstate->msg_.motor_state()[i].q()<< " ";
+    }
+    state_stream << std::endl;
+    debug_stream_ << state_stream.str();
+#endif
+
     }
 
 private:

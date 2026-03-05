@@ -53,7 +53,8 @@ FSM:
       FixStand: LT + up.on_pressed
       Passive: LT + B.on_pressed
       Lyenbot_Squat: RB + Y.on_pressed
-    policy_dir: config/policy/20260120_033507-lyenbotlegloc_loc_fastsac_v1-locomotion/
+    # policy_dir: config/policy/20260120_033507-lyenbotlegloc_loc_fastsac_v1-locomotion/
+    policy_dir: config/policy/lyenbotlegs_2026-02-28_11-13-38/
   Lyenbot_Squat:
     transitions:
       FixStand: LT + up.on_pressed

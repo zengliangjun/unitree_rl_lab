@@ -75,7 +75,7 @@ void State_Squat::_resample_init_compute() {
     float pos_phase = asin(sin);
     env->robot->data.pos_phase = pos_phase;
 
-    /*
+
     std::cout << "init: command_phase: cpos " << env->cfg["commands"]["squat_command"]["cpos"].as<float>() \
                                          << " rad:  " << env->cfg["commands"]["squat_command"]["rad"].as<float>() \
                                          << " left:  " << left_knee_id  \
@@ -83,7 +83,7 @@ void State_Squat::_resample_init_compute() {
                                          << " pos:  " << pos << std::endl;
 
     std::cout << "joint_pos:  " << env->robot->data.joint_pos << std::endl;
-    */
+
     if (pos_phase > squat_command_phase) {
         phase_vel = - phase_vel;
     }
