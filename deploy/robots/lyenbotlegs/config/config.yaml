@@ -10,11 +10,15 @@ FSM:
     Lyenbot_Squat:
       id: 101
       type: Squat
+    Lyenbot_Stomp:
+      id: 102
+      type: Stomp
   Passive:
     transitions:
       FixStand: LT + up.on_pressed
       Velocity: RB + X.on_pressed
       Lyenbot_Squat: RB + Y.on_pressed
+      Lyenbot_Stomp: RB + A.on_pressed
     mode: [
       1,1,1,1,1,1,
       1,1,1,1,1,1,
@@ -30,6 +34,7 @@ FSM:
       Passive: LT + B.on_pressed
       Velocity: RB + X.on_pressed
       Lyenbot_Squat: RB + Y.on_pressed
+      Lyenbot_Stomp: RB + A.on_pressed
     kp: [
       40.179238471, 99.098427777, 40.179238471, 99.098427777, 14.3, 14.3, # 28.501246196, 28.501246196,
       40.179238471, 99.098427777, 40.179238471, 99.098427777, 14.3, 14.3, # 28.501246196, 28.501246196,
@@ -53,6 +58,7 @@ FSM:
       FixStand: LT + up.on_pressed
       Passive: LT + B.on_pressed
       Lyenbot_Squat: RB + Y.on_pressed
+      Lyenbot_Stomp: RB + A.on_pressed
     # policy_dir: config/policy/20260120_033507-lyenbotlegloc_loc_fastsac_v1-locomotion/
     policy_dir: config/policy/lyenbotlegs_2026-02-28_11-13-38/
   Lyenbot_Squat:
@@ -60,6 +66,14 @@ FSM:
       FixStand: LT + up.on_pressed
       Passive: LT + B.on_pressed
       Velocity: RB + X.on_pressed
+      Lyenbot_Stomp: RB + A.on_pressed
     # policy_dir: config/policy/lyenbot_leg_squat/2026-01-15_20-32-26/
     policy_dir: config/policy/lyenbotlegcamsquatv1/2026-02-04_16-32-32/
+  Lyenbot_Stomp:
+    transitions:
+      FixStand: LT + up.on_pressed
+      Passive: LT + B.on_pressed
+      Velocity: RB + X.on_pressed
+      Lyenbot_Squat: RB + Y.on_pressed
+    policy_dir: config/policy/lyenbotlegs_kp160_stomp_2026-03-03_23-02-04/
 
