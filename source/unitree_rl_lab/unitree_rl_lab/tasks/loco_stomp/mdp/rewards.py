@@ -343,3 +343,10 @@ def reward_euler(env: ManagerBasedRLEnv,
 
     # Combine the two mismatch values into a single reward (average of both components)
     return (euler_mismatch0 + euler_mismatch1) / 2.
+
+
+def penalty_orientation(env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")):
+    asset: Articulation = env.scene[asset_cfg.name]
+    gw = torch.repeat_interleave(asset.data.GRAVITY_VEC_W.unsqueeze(1), repeats=len(asset_cfg.body_ids), dim=1)
+    body_gravity_b = math_utils.quat_apply_inverse(asset.data.body_quat_w[:, asset_cfg.body_ids], gw)
+    return torch.sum(torch.sum(torch.square(body_gravity_b[:, :, :2]), dim=-1), dim=-1)

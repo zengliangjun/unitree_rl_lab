@@ -493,9 +493,19 @@ class RewardsCfg:
                 preserve_order=True),
         },
     )
-    reward_euler = RewTerm(
-        func=rewards.reward_euler,
-        weight=0.35,
+    # reward_euler = RewTerm(
+    #     func=rewards.reward_euler,
+    #     weight=0.35,
+    #     params={
+    #         "asset_cfg": SceneEntityCfg(
+    #             "robot",
+    #             body_names=["left_ankle_roll_link", "right_ankle_roll_link"],
+    #             preserve_order=True),
+    #     },
+    # )
+    penalty_feet_orientation = RewTerm(
+        func=rewards.penalty_orientation,
+        weight=-3.0,
         params={
             "asset_cfg": SceneEntityCfg(
                 "robot",
