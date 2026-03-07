@@ -4,6 +4,7 @@
 #include "FSM/State_RLBase.h"
 #include "State_Squat.h"
 #include "State_Stomp.h"
+#include "State_Velocity2.h"
 
 std::unique_ptr<LowCmd_t> FSMState::lowcmd = nullptr;
 std::shared_ptr<LowState_t> FSMState::lowstate = nullptr;
