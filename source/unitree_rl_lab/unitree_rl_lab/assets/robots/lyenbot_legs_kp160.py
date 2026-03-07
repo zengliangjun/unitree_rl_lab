@@ -89,8 +89,10 @@ LYENBOT_CFG = unitree.UnitreeArticulationCfg(
                 ".*ankle_roll.*": 33
             },
             velocity_limit_sim=16.22,
-            stiffness=40,
-            damping=5.3,
+            stiffness= 14, #20,
+            damping=2.65,
+            #  stiffness=40,  sim2 sim the ankle will jitter
+            #  damping=5.3,
             armature=0.007219450,
         ),
     },
