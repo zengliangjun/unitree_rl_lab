@@ -77,6 +77,8 @@ LYENBOT_CFG = unitree.UnitreeArticulationCfg(
             ".*_hip_pitch_joint": -0.1,
             ".*_knee_pitch_joint": 0.3,
             ".*_ankle_pitch_joint": -0.2,
+            "left_hip_roll_joint": 0.1,
+            "right_hip_roll_joint": -0.1,
         },
         joint_vel={".*": 0.0},
     ),
