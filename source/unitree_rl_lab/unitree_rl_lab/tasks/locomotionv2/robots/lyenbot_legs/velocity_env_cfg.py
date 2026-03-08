@@ -301,9 +301,9 @@ class RewardsCfg:
     joint_vel = RewTerm(func=mdp_rewards.joint_vel_l2, weight=-0.003) # weight=-0.001)
     joint_acc = RewTerm(func=mdp_rewards.joint_acc_l2, weight=-7.5e-7) # weight=-2.5e-7)
     action_rate = RewTerm(func=mdp_rewards.action_rate_l2, weight=-0.05)
-    ankle_action_rate = RewTerm(func=rewards_ext.action_rate_l2_ext,
-                          weight=-0.03,
-                          params={"asset_cfg": SceneEntityCfg("robot", joint_names=".*ankle_.*")})
+    # ankle_action_rate = RewTerm(func=rewards_ext.action_rate_l2_ext,
+    #                       weight=-0.03,
+    #                       params={"asset_cfg": SceneEntityCfg("robot", joint_names=".*ankle_.*")})
 
     dof_pos_limits = RewTerm(func=mdp_rewards.joint_pos_limits, weight=-5.0)
 
@@ -404,12 +404,12 @@ class RewardsCfg:
         params={
             "asset_cfg":
             SceneEntityCfg("robot", body_names=[
-                "left_knee_pitch_link",
-                "right_knee_pitch_link",
+                # "left_knee_pitch_link",
+                # "right_knee_pitch_link",
                 "left_ankle_roll_link",
                 "right_ankle_roll_link"],
             preserve_order=True),
-            "target_width": 0.32,
+            "target_width": 0.275, # 0.32, # 0.23
             "std": 0.12
         },
     )
@@ -422,8 +422,8 @@ class RewardsCfg:
 
             "std": 0.02,
 
-            "max_height": 0.13,
-            "target_height": 0.13, # 0.03,
+            "max_height": 0.05,
+            "target_height": 0.05, # 0.03,
             "speed": 1.01,
             "asset_cfg": SceneEntityCfg(
                 "robot",
@@ -440,8 +440,8 @@ class RewardsCfg:
 
             "std": 0.02,
 
-            "max_height": 0.13,
-            "target_height": 0.13, # 0.03,
+            "max_height": 0.05,
+            "target_height": 0.05, # 0.03,
             "speed": 1.01,
             "asset_cfg": SceneEntityCfg(
                 "robot",
@@ -450,6 +450,17 @@ class RewardsCfg:
         },
     )
 
+    penalize_feet_forces = RewTerm(
+        func=rewards_ext.penalize_feet_forces,
+        weight=-0.01,
+        params={
+            "sensor_cfg": SceneEntityCfg(
+                "contact_forces",
+                body_names=["left_ankle_roll_link", "right_ankle_roll_link"]),
+            "threshold": 700,
+            "max_over_penalize_forces": 400,
+            },
+    )
     # -- other
     undesired_contacts = RewTerm(
         func=mdp_rewards.undesired_contacts,
