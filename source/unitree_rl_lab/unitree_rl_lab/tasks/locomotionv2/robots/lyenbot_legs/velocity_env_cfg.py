@@ -223,6 +223,10 @@ class CommandsCfg:
         limit_ranges=commands.CommandWithPhaseCfg.Ranges(
             lin_vel_x=(-1, 1), lin_vel_y=(-1, 1), ang_vel_z=(-1, 1)
         ),
+
+        period=0.6,  #0.8,
+        offset=(0.0, 0.5),
+        threshold=0.55
     )
 
 
