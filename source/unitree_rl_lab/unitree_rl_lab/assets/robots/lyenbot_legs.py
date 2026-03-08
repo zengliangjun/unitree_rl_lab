@@ -105,6 +105,7 @@ LYENBOT_CFG = unitree.UnitreeArticulationCfg(
                 ".*_hip_yaw_joint": 4,
                 "waist_yaw_joint": 3
             },
+            friction=0.15,
             armature=0.010177520,
         ),
         "N7520-22.5": ImplicitActuatorCfg(
@@ -125,6 +126,7 @@ LYENBOT_CFG = unitree.UnitreeArticulationCfg(
                 ".*_hip_roll_joint": 4,
                 ".*_knee_pitch_joint": 3
             },
+            friction=0.15,
             armature=0.025101925,
         ),
         "N5020-16-parallel": ImplicitActuatorCfg(
@@ -136,6 +138,7 @@ LYENBOT_CFG = unitree.UnitreeArticulationCfg(
             velocity_limit_sim=16.22,
             stiffness=14, # 28.501246196,
             damping=0.9, # 1.814445687,
+            friction=0.15,
             armature=0.007219450,
         ),
     },

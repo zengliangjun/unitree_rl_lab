@@ -126,6 +126,31 @@ class EventCfg:
     )
 
     # reset
+    robot_joint_stiffness_and_damping = EventTerm(
+        func=events.randomize_actuator_gains,
+        min_step_count_between_reset=720,
+        mode="reset",
+        params={
+            "asset_cfg": SceneEntityCfg("robot", joint_names=".*"),
+            "stiffness_distribution_params": (0.75, 1.5),
+            "damping_distribution_params": (0.3, 3.0),
+            "operation": "scale",
+            "distribution": "log_uniform",
+        },
+    )
+    robot_joint_pos_limits = EventTerm(
+        func=events.randomize_joint_parameters,
+        min_step_count_between_reset=720,
+        mode="reset",
+        params={
+            "asset_cfg": SceneEntityCfg("robot", joint_names=".*"),
+            "friction_distribution_params": (0.15, 1.5),
+            "lower_limit_distribution_params": (0.00, 0.01),
+            "upper_limit_distribution_params": (0.00, 0.01),
+            "operation": "add",
+            "distribution": "gaussian",
+        },
+    )
     mass = EventTerm(
         func=events.randomize_rigid_body_mass,
         mode="reset",
@@ -158,18 +183,6 @@ class EventCfg:
             "torque_range": (-0.5, 0.5),
         },
     )
-
-    randomize_actuator_gains = EventTerm(
-        func=events.randomize_actuator_gains,
-        mode="reset",
-        params={
-            "asset_cfg": SceneEntityCfg("robot"),
-            "stiffness_distribution_params": (0.5, 1.5),
-            "damping_distribution_params": (0.5, 1.5),
-            "operation": "scale"
-        },
-    )
-
     reset_base = EventTerm(
         func=events.reset_root_state_uniform,
         mode="reset",
@@ -404,7 +417,7 @@ class RewardsCfg:
 
     feet_width = RewTerm(
         func=rewards_ext.reward_feet_width,
-        weight=0.1,
+        weight=0.3,
         params={
             "asset_cfg":
             SceneEntityCfg("robot", body_names=[
