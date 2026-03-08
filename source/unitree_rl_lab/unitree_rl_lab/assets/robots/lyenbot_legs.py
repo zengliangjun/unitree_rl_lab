@@ -54,7 +54,7 @@ from . import unitree
 LYENBOT_CFG = unitree.UnitreeArticulationCfg(
     spawn=sim_utils.UsdFileCfg(
         # usd_path=f"{unitree.UNITREE_MODEL_DIR}/lyenbot/usd_lyenbotleg/lyenbotleg_20151206_collision.usd",
-        usd_path=f"{unitree.UNITREE_MODEL_DIR}/lyenbotlegs-A_E11-260308_collision/lyenbotlegs-A_E11-260308_collision.usd",
+        usd_path=f"{unitree.UNITREE_MODEL_DIR}/lyenbot/lyenbotlegs-A_E11-260308_collision/lyenbotlegs-A_E11-260308_collision.usd",
         activate_contact_sensors=True,
         rigid_props=sim_utils.RigidBodyPropertiesCfg(
             disable_gravity=False,
@@ -97,12 +97,12 @@ LYENBOT_CFG = unitree.UnitreeArticulationCfg(
             },
             stiffness={
                 ".*_hip_pitch_joint": 80,  #
-                ".*_hip_yaw_joint": 60,  #
+                ".*_hip_yaw_joint": 80,  #
                 "waist_yaw_joint": 60,  #
             },
             damping={
                 ".*_hip_pitch_joint": 4,
-                ".*_hip_yaw_joint": 3,
+                ".*_hip_yaw_joint": 4,
                 "waist_yaw_joint": 3
             },
             armature=0.010177520,
@@ -122,8 +122,8 @@ LYENBOT_CFG = unitree.UnitreeArticulationCfg(
                 ".*_knee_pitch_joint": 60,  #
             },
             damping={
-                ".*_hip_roll_joint": 3,
-                ".*_knee_pitch_joint": 4
+                ".*_hip_roll_joint": 4,
+                ".*_knee_pitch_joint": 3
             },
             armature=0.025101925,
         ),
