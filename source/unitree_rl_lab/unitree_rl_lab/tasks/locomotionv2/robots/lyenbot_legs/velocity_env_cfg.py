@@ -550,7 +550,6 @@ class RobotEnvCfg(ManagerBasedRLEnvCfg):
             if self.scene.terrain.terrain_generator is not None:
                 self.scene.terrain.terrain_generator.curriculum = False
 
-
 @configclass
 class RobotPlayEnvCfg(RobotEnvCfg):
     def __post_init__(self):
@@ -561,3 +560,17 @@ class RobotPlayEnvCfg(RobotEnvCfg):
         self.scene.terrain.terrain_generator.num_cols = 4
         self.commands.base_velocity.ranges = self.commands.base_velocity.limit_ranges
         self.curriculum = None
+
+from unitree_rl_lab.assets.robots.lyenbot_legs_35 import LYENBOT_CFG as ROBOT35_CFG
+
+@configclass
+class Robot35EnvCfg(RobotEnvCfg):
+    def __post_init__(self):
+        super().__post_init__()
+        self.scene.robot = ROBOT35_CFG.replace(prim_path="{ENV_REGEX_NS}/Robot")
+
+@configclass
+class Robot35PlayEnvCfg(RobotPlayEnvCfg):
+    def __post_init__(self):
+        super().__post_init__()
+        self.scene.robot = ROBOT35_CFG.replace(prim_path="{ENV_REGEX_NS}/Robot")
