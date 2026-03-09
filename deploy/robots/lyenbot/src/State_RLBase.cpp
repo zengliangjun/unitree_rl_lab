@@ -1,6 +1,7 @@
 #include "FSM/State_RLBase.h"
 #include "unitree_articulation.h"
 #include "isaaclab/envs/mdp/observations/observations.h"
+#include "isaaclab/envs/mdp/observations/holosoma_observations.h"
 #include "isaaclab/envs/mdp/actions/joint_actions.h"
 
 State_RLBase::State_RLBase(int state_mode, std::string state_string)
