@@ -8,10 +8,53 @@ from isaaclab.utils import configclass
 
 from . import unitree
 
+'''
+    spawn=sim_utils.UsdFileCfg(
+        usd_path=f"{unitree.UNITREE_MODEL_DIR}/lyenbot/lyenbot_20151206_collision.usd",
+        activate_contact_sensors=True,
+        rigid_props=sim_utils.RigidBodyPropertiesCfg(
+            disable_gravity=False,
+            retain_accelerations=False,
+            linear_damping=0.0,
+            angular_damping=0.0,
+            max_linear_velocity=1000.0,
+            max_angular_velocity=1000.0,
+            max_depenetration_velocity=1.0,
+        ),
+        articulation_props=sim_utils.ArticulationRootPropertiesCfg(
+            enabled_self_collisions=True,
+            solver_position_iteration_count=8,
+            solver_velocity_iteration_count=4,
+        ),
+    ),
+    spawn=sim_utils.UrdfFileCfg(
+        fix_base=False,
+        replace_cylinders_with_capsules=True,
+        asset_path=f"{unitree.UNITREE_MODEL_DIR}/lyenbot/lyenbot_20151206_collision.urdf",
+        activate_contact_sensors=True,
+        rigid_props=sim_utils.RigidBodyPropertiesCfg(
+            disable_gravity=False,
+            retain_accelerations=False,
+            linear_damping=0.0,
+            angular_damping=0.0,
+            max_linear_velocity=1000.0,
+            max_angular_velocity=1000.0,
+            max_depenetration_velocity=1.0,
+        ),
+        articulation_props=sim_utils.ArticulationRootPropertiesCfg(
+            enabled_self_collisions=True, solver_position_iteration_count=8, solver_velocity_iteration_count=4
+        ),
+        joint_drive=sim_utils.UrdfConverterCfg.JointDriveCfg(
+            gains=sim_utils.UrdfConverterCfg.JointDriveCfg.PDGainsCfg(stiffness=0, damping=0)
+        ),
+    ),
+
+'''
+
 LYENBOT_CFG = unitree.UnitreeArticulationCfg(
     spawn=sim_utils.UsdFileCfg(
         # usd_path=f"{unitree.UNITREE_MODEL_DIR}/lyenbot/usd_lyenbotleg/lyenbotleg_20151206_collision.usd",
-        usd_path=f"{unitree.UNITREE_MODEL_DIR}/lyenbot/usd_lyenbotleg_fix_ankle/lyenbotlegs_20260212_collision_ankle_roll_pitch.usd",
+        usd_path=f"{unitree.UNITREE_MODEL_DIR}/lyenbot/lyenbotlegs-A_E11-260308_collision_30/lyenbotlegs-A_E11-260308_collision_30.usd",
         activate_contact_sensors=True,
         rigid_props=sim_utils.RigidBodyPropertiesCfg(
             disable_gravity=False,
@@ -34,6 +77,8 @@ LYENBOT_CFG = unitree.UnitreeArticulationCfg(
             ".*_hip_pitch_joint": -0.1,
             ".*_knee_pitch_joint": 0.3,
             ".*_ankle_pitch_joint": -0.2,
+            "left_hip_roll_joint": 0.017453,
+            "right_hip_roll_joint": -0.017453,
         },
         joint_vel={".*": 0.0},
     ),
@@ -51,15 +96,16 @@ LYENBOT_CFG = unitree.UnitreeArticulationCfg(
                 "waist_yaw_joint": 17.7
             },
             stiffness={
-                ".*_hip_pitch_joint": 160,  #
-                ".*_hip_yaw_joint": 90,  #
-                "waist_yaw_joint": 90,  #
+                ".*_hip_pitch_joint": 80,  #
+                ".*_hip_yaw_joint": 80,  #
+                "waist_yaw_joint": 60,  #
             },
             damping={
-                ".*_hip_pitch_joint": 6,
-                ".*_hip_yaw_joint": 4,
-                "waist_yaw_joint": 4
+                ".*_hip_pitch_joint": 4,
+                ".*_hip_yaw_joint": 3,
+                "waist_yaw_joint": 3
             },
+            friction=0.05,
             armature=0.010177520,
         ),
         "N7520-22.5": ImplicitActuatorCfg(
@@ -73,13 +119,14 @@ LYENBOT_CFG = unitree.UnitreeArticulationCfg(
                 ".*_knee_pitch_joint": 12.04
             },
             stiffness={
-                ".*_hip_roll_joint": 100,  #
-                ".*_knee_pitch_joint": 160,  #
+                ".*_hip_roll_joint": 80,  #
+                ".*_knee_pitch_joint": 75,  #
             },
             damping={
-                ".*_hip_roll_joint": 4,
-                ".*_knee_pitch_joint": 6
+                ".*_hip_roll_joint": 3,
+                ".*_knee_pitch_joint": 3
             },
+            friction=0.05,
             armature=0.025101925,
         ),
         "N5020-16-parallel": ImplicitActuatorCfg(
@@ -89,10 +136,9 @@ LYENBOT_CFG = unitree.UnitreeArticulationCfg(
                 ".*ankle_roll.*": 30
             },
             velocity_limit_sim=16.22,
-            stiffness= 14, #20,
-            damping=2.65,
-            #  stiffness=40,  sim2 sim the ankle will jitter
-            #  damping=5.3,
+            stiffness= 27, # 14, # 28.501246196,
+            damping= 2, # 0.9, # 1.814445687,
+            friction=0.05,
             armature=0.007219450,
         ),
     },

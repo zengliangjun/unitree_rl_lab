@@ -237,7 +237,7 @@ class CommandsCfg:
             lin_vel_x=(-1, 1), lin_vel_y=(-1, 1), ang_vel_z=(-1, 1)
         ),
 
-        period=0.6,  #0.8,
+        period=0.6,  # 0.8, #
         offset=(0.0, 0.5),
         threshold=0.55
     )
@@ -439,8 +439,8 @@ class RewardsCfg:
 
             "std": 0.02,
 
-            "max_height": 0.05,
-            "target_height": 0.05, # 0.03,
+            "max_height":  0.05,  # 0.08,
+            "target_height": 0.05, # 0.03,  0.08, #
             "speed": 1.01,
             "asset_cfg": SceneEntityCfg(
                 "robot",
@@ -457,8 +457,8 @@ class RewardsCfg:
 
             "std": 0.02,
 
-            "max_height": 0.05,
-            "target_height": 0.05, # 0.03,
+            "max_height": 0.05,  #  0.08,
+            "target_height": 0.05, # 0.03,  0.08, #
             "speed": 1.01,
             "asset_cfg": SceneEntityCfg(
                 "robot",
@@ -574,3 +574,17 @@ class Robot35PlayEnvCfg(RobotPlayEnvCfg):
     def __post_init__(self):
         super().__post_init__()
         self.scene.robot = ROBOT35_CFG.replace(prim_path="{ENV_REGEX_NS}/Robot")
+
+from unitree_rl_lab.assets.robots.lyenbot_legs_30 import LYENBOT_CFG as ROBOT30_CFG
+
+@configclass
+class Robot30EnvCfg(RobotEnvCfg):
+    def __post_init__(self):
+        super().__post_init__()
+        self.scene.robot = ROBOT30_CFG.replace(prim_path="{ENV_REGEX_NS}/Robot")
+
+@configclass
+class Robot30PlayEnvCfg(RobotPlayEnvCfg):
+    def __post_init__(self):
+        super().__post_init__()
+        self.scene.robot = ROBOT30_CFG.replace(prim_path="{ENV_REGEX_NS}/Robot")

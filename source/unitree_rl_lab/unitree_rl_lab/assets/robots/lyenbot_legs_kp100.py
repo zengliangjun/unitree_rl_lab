@@ -42,8 +42,8 @@ LYENBOT_CFG = unitree.UnitreeArticulationCfg(
             joint_names_expr=[".*_hip_pitch_joint", ".*_hip_yaw_joint", "waist_yaw_joint"],  # 5
             effort_limit_sim={
                 ".*_hip_pitch_joint": 140,
-                ".*_hip_yaw_joint": 55,
-                "waist_yaw_joint": 55
+                ".*_hip_yaw_joint": 80,
+                "waist_yaw_joint": 80
             },
             velocity_limit_sim={
                 ".*_hip_pitch_joint": 12.04,
@@ -65,7 +65,7 @@ LYENBOT_CFG = unitree.UnitreeArticulationCfg(
         "N7520-22.5": ImplicitActuatorCfg(
             joint_names_expr=[".*_hip_roll_joint", ".*_knee_pitch_joint"],  # 4
             effort_limit_sim={
-                ".*_hip_roll_joint": 55,
+                ".*_hip_roll_joint": 80,
                 ".*_knee_pitch_joint": 140
             },
             velocity_limit_sim={
@@ -85,8 +85,8 @@ LYENBOT_CFG = unitree.UnitreeArticulationCfg(
         "N5020-16-parallel": ImplicitActuatorCfg(
             joint_names_expr=[".*ankle.*"],  # 4
             effort_limit_sim={
-                ".*ankle_pitch.*": 66,
-                ".*ankle_roll.*": 33
+                ".*ankle_pitch.*": 30,
+                ".*ankle_roll.*": 30
             },
             velocity_limit_sim=16.22,
             stiffness=20,
