@@ -66,3 +66,18 @@ class Robot30PlayEnv3Cfg(Robot30PlayEnv2Cfg):
         super().__post_init__()
         self.commands.base_velocity.period = 0.8
 
+
+from unitree_rl_lab.assets.robots.lyenbot_legs_48 import LYENBOT_CFG as ROBOT48_CFG
+
+@configclass
+class Robot48Env3Cfg(Robot30Env3Cfg):
+    def __post_init__(self):
+        super().__post_init__()
+        self.scene.robot = ROBOT48_CFG.replace(prim_path="{ENV_REGEX_NS}/Robot")
+
+@configclass
+class Robot48PlayEnv3Cfg(Robot30PlayEnv3Cfg):
+    def __post_init__(self):
+        super().__post_init__()
+        self.scene.robot = ROBOT48_CFG.replace(prim_path="{ENV_REGEX_NS}/Robot")
+
