@@ -195,3 +195,73 @@ def penalize_foot_clearance(
     diff = torch.square(feet_error / std)
     return torch.mean(diff, dim=-1)
 
+
+
+
+def reward_foot_clearance_v2(
+    env: ManagerBasedRLEnv,
+    command_name: str,
+
+    std: float,
+    max_height: float,
+    target_height: float,
+    speed: float,
+
+    asset_cfg: SceneEntityCfg,
+) -> torch.Tensor:
+    """Reward the swinging feet for clearing a specified height off the ground"""
+
+    cmd: commands.CommandWithPhase = env.command_manager.get_term(command_name)
+
+    swing_phase = torch.logical_and(cmd.feet_swing_phases > 0.008, cmd.feet_swing_phases < 0.992)
+
+    #swing_target0 = torch.sin(swing_phase * torch.pi) * target_height
+    #swing_target = torch.clamp_min(swing_target0, min=0.0)
+    swing_target = swing_phase.float() * target_height
+
+    asset: Articulation = env.scene[asset_cfg.name]
+    feet_z = asset.data.body_pos_w[:, asset_cfg.body_ids, 2] - 0.006  ##
+    # feet_error = torch.clamp_max(feet_z - target_height, max=0) # allow feet to be higher than target, but penalize if they are lower
+    feet_error = feet_z - swing_target
+
+    clamp_mask = swing_target > 0.008
+    feet_error[clamp_mask] = torch.clamp_max(feet_error[clamp_mask], max=0) # only penalize when target height is above 0 (i.e. during swing phase)
+
+    diff = torch.square(feet_error / std)
+
+    feet_exp = torch.exp(- diff)
+    return torch.mean(feet_exp, dim=-1)
+
+
+def penalize_foot_clearance_v2(
+    env: ManagerBasedRLEnv,
+    command_name: str,
+
+    std: float,
+    max_height: float,
+    target_height: float,
+    speed: float,
+
+    asset_cfg: SceneEntityCfg,
+) -> torch.Tensor:
+    """Reward the swinging feet for clearing a specified height off the ground"""
+
+    cmd: commands.CommandWithPhase = env.command_manager.get_term(command_name)
+
+    swing_phase = torch.logical_and(cmd.feet_swing_phases > 0.008, cmd.feet_swing_phases < 0.992)
+
+    # swing_target0 = torch.sin(swing_phase * torch.pi) * target_height
+    # swing_target = torch.clamp_min(swing_target0, min=0.0)
+    swing_target = swing_phase.float() * target_height
+
+    asset: Articulation = env.scene[asset_cfg.name]
+    feet_z = asset.data.body_pos_w[:, asset_cfg.body_ids, 2] - 0.006  ##
+    # feet_error = torch.clamp_max(feet_z - target_height, max=0) # allow feet to be higher than target, but penalize if they are lower
+    feet_error = feet_z - swing_target
+
+    clamp_mask = swing_target > 0.008
+    feet_error[clamp_mask] = torch.clamp_max(feet_error[clamp_mask], max=0) # only penalize when target height is above 0 (i.e. during swing phase)
+
+    diff = torch.square(feet_error / std)
+    return torch.mean(diff, dim=-1)
+

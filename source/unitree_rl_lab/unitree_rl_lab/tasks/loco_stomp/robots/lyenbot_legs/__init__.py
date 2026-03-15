@@ -1,7 +1,7 @@
 import gymnasium as gym
 
 gym.register(
-    id="lyenbotlegs-stomp",
+    id="lyenbotlegs-kp125-stomp",
     entry_point="isaaclab.envs:ManagerBasedRLEnv",
     disable_env_checker=True,
     kwargs={
@@ -23,7 +23,7 @@ gym.register(
 )
 
 gym.register(
-    id="lyenbotlegskp100-stomp",
+    id="lyenbotlegs-kp100-stomp",
     entry_point="isaaclab.envs:ManagerBasedRLEnv",
     disable_env_checker=True,
     kwargs={
