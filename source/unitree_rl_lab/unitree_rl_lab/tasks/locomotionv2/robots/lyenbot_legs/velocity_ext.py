@@ -20,8 +20,6 @@ class Robot30PlayEnvCfg(velocity_env_cfg.Robot30PlayEnvCfg):
     def __post_init__(self):
         super().__post_init__()
 
-
-
 @configclass
 class Robot30Env2Cfg(Robot30EnvCfg):
     def __post_init__(self):
@@ -55,3 +53,16 @@ class Robot30Env2Cfg(Robot30EnvCfg):
 class Robot30PlayEnv2Cfg(Robot30PlayEnvCfg):
     def __post_init__(self):
         super().__post_init__()
+
+@configclass
+class Robot30Env3Cfg(Robot30Env2Cfg):
+    def __post_init__(self):
+        super().__post_init__()
+        self.commands.base_velocity.period = 0.8
+
+@configclass
+class Robot30PlayEnv3Cfg(Robot30PlayEnv2Cfg):
+    def __post_init__(self):
+        super().__post_init__()
+        self.commands.base_velocity.period = 0.8
+
