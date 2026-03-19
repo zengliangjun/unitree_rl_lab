@@ -10,8 +10,7 @@ from . import unitree
 
 LYENBOT_CFG = unitree.UnitreeArticulationCfg(
     spawn=sim_utils.UsdFileCfg(
-        # usd_path=f"{unitree.UNITREE_MODEL_DIR}/lyenbot/usd_lyenbotleg/lyenbotleg_20151206_collision.usd",
-        usd_path=f"{unitree.UNITREE_MODEL_DIR}/lyenbot/usd_lyenbotleg_fix_ankle/lyenbotlegs_20260212_collision_ankle_roll_pitch.usd",
+        usd_path=f"{unitree.UNITREE_MODEL_DIR}/lyenbot/lyenbotlegs-A_E12-260319_collision/lyenbotlegs-A_E12-260319_collision.usd",
         activate_contact_sensors=True,
         rigid_props=sim_utils.RigidBodyPropertiesCfg(
             disable_gravity=False,

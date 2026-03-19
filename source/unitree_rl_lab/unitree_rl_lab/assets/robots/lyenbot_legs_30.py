@@ -8,53 +8,10 @@ from isaaclab.utils import configclass
 
 from . import unitree
 
-'''
-    spawn=sim_utils.UsdFileCfg(
-        usd_path=f"{unitree.UNITREE_MODEL_DIR}/lyenbot/lyenbot_20151206_collision.usd",
-        activate_contact_sensors=True,
-        rigid_props=sim_utils.RigidBodyPropertiesCfg(
-            disable_gravity=False,
-            retain_accelerations=False,
-            linear_damping=0.0,
-            angular_damping=0.0,
-            max_linear_velocity=1000.0,
-            max_angular_velocity=1000.0,
-            max_depenetration_velocity=1.0,
-        ),
-        articulation_props=sim_utils.ArticulationRootPropertiesCfg(
-            enabled_self_collisions=True,
-            solver_position_iteration_count=8,
-            solver_velocity_iteration_count=4,
-        ),
-    ),
-    spawn=sim_utils.UrdfFileCfg(
-        fix_base=False,
-        replace_cylinders_with_capsules=True,
-        asset_path=f"{unitree.UNITREE_MODEL_DIR}/lyenbot/lyenbot_20151206_collision.urdf",
-        activate_contact_sensors=True,
-        rigid_props=sim_utils.RigidBodyPropertiesCfg(
-            disable_gravity=False,
-            retain_accelerations=False,
-            linear_damping=0.0,
-            angular_damping=0.0,
-            max_linear_velocity=1000.0,
-            max_angular_velocity=1000.0,
-            max_depenetration_velocity=1.0,
-        ),
-        articulation_props=sim_utils.ArticulationRootPropertiesCfg(
-            enabled_self_collisions=True, solver_position_iteration_count=8, solver_velocity_iteration_count=4
-        ),
-        joint_drive=sim_utils.UrdfConverterCfg.JointDriveCfg(
-            gains=sim_utils.UrdfConverterCfg.JointDriveCfg.PDGainsCfg(stiffness=0, damping=0)
-        ),
-    ),
-
-'''
 
 LYENBOT_CFG = unitree.UnitreeArticulationCfg(
     spawn=sim_utils.UsdFileCfg(
-        # usd_path=f"{unitree.UNITREE_MODEL_DIR}/lyenbot/usd_lyenbotleg/lyenbotleg_20151206_collision.usd",
-        usd_path=f"{unitree.UNITREE_MODEL_DIR}/lyenbot/lyenbotlegs-A_E11-260308_collision_30/lyenbotlegs-A_E11-260308_collision_30.usd",
+        usd_path=f"{unitree.UNITREE_MODEL_DIR}/lyenbot/lyenbotlegs-A_E12-260319_collision/lyenbotlegs-A_E12-260319_collision.usd",
         activate_contact_sensors=True,
         rigid_props=sim_utils.RigidBodyPropertiesCfg(
             disable_gravity=False,
