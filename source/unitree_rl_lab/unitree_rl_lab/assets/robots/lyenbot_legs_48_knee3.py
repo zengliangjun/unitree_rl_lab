@@ -95,7 +95,7 @@ LYENBOT_CFG = unitree.UnitreeArticulationCfg(
             velocity_limit_sim={
                 ".*_hip_pitch_joint": 12.04,
                 ".*_hip_yaw_joint": 17.79,
-                "waist_yaw_joint": 17.7
+                "waist_yaw_joint": 17.79,
             },
             stiffness={
                 ".*_hip_pitch_joint": 95,  #
@@ -122,7 +122,7 @@ LYENBOT_CFG = unitree.UnitreeArticulationCfg(
             },
             stiffness={
                 ".*_hip_roll_joint": 80,  #
-                ".*_knee_pitch_joint": 90,  #
+                ".*_knee_pitch_joint": 75,  #
             },
             damping={
                 ".*_hip_roll_joint": 3,

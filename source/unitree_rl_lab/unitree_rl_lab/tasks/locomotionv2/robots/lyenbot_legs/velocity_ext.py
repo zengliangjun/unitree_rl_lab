@@ -109,7 +109,7 @@ class Robot48New3EnvCfg(Robot48Env4Cfg):
         self.scene.robot = ROBOT48NEW_CFG.replace(prim_path="{ENV_REGEX_NS}/Robot")
         self.rewards.feet_width = RewTerm(
                 func=rewards_ext.reward_feet_width,
-                weight=0.75,
+                weight=0.3,
                 params={
                     "asset_cfg":
                         SceneEntityCfg("robot", body_names=[
@@ -119,9 +119,11 @@ class Robot48New3EnvCfg(Robot48Env4Cfg):
                             "right_ankle_roll_link"],
                             preserve_order=True),
                     "target_width": 0.232,
-                    "std": 0.06,
+                    "std": 0.12,
                 }
             )
+        self.rewards.reward_feet_clearance.func = rewards_ext.reward_foot_clearance
+        self.rewards.penalize_feet_clearance.func = rewards_ext.penalize_foot_clearance
 
 
 @configclass
@@ -129,3 +131,22 @@ class Robot48New3PlayEnvCfg(Robot48PlayEnv4Cfg):
     def __post_init__(self):
         super().__post_init__()
         self.scene.robot = ROBOT48NEW_CFG.replace(prim_path="{ENV_REGEX_NS}/Robot")
+        self.rewards.reward_feet_clearance.func = rewards_ext.reward_foot_clearance
+        self.rewards.penalize_feet_clearance.func = rewards_ext.penalize_foot_clearance
+
+
+
+@configclass
+class Robot48New3_2EnvCfg(Robot48New3EnvCfg):
+    def __post_init__(self):
+        super().__post_init__()
+        self.rewards.reward_feet_clearance.func = rewards_ext.reward_foot_clearance_v2
+        self.rewards.penalize_feet_clearance.func = rewards_ext.reward_foot_clearance_v2
+
+
+@configclass
+class Robot48New3_2PlayEnvCfg(Robot48New3PlayEnvCfg):
+    def __post_init__(self):
+        super().__post_init__()
+        self.rewards.reward_feet_clearance.func = rewards_ext.reward_foot_clearance_v2
+        self.rewards.penalize_feet_clearance.func = rewards_ext.reward_foot_clearance_v2

@@ -89,12 +89,23 @@ gym.register(
 )
 
 gym.register(
-    id="lyenbotlegs-pos3-48-27-velocity",
+    id="lyenleg-020-pos3-4827-vel",
     entry_point="isaaclab.envs:ManagerBasedRLEnv",
     disable_env_checker=True,
     kwargs={
         "env_cfg_entry_point": f"{__name__}.velocity_ext:Robot48New3EnvCfg",
         "play_env_cfg_entry_point": f"{__name__}.velocity_ext:Robot48New3PlayEnvCfg",
+        "rsl_rl_cfg_entry_point": f"unitree_rl_lab.tasks.locomotion.agents.rsl_rl_ppo_cfg:BasePPORunnerCfg",
+    },
+)
+
+gym.register(
+    id="lyenleg-021-pos3-4827-vel",
+    entry_point="isaaclab.envs:ManagerBasedRLEnv",
+    disable_env_checker=True,
+    kwargs={
+        "env_cfg_entry_point": f"{__name__}.velocity_ext:Robot48New3_2EnvCfg",
+        "play_env_cfg_entry_point": f"{__name__}.velocity_ext:Robot48New3_2PlayEnvCfg",
         "rsl_rl_cfg_entry_point": f"unitree_rl_lab.tasks.locomotion.agents.rsl_rl_ppo_cfg:BasePPORunnerCfg",
     },
 )
