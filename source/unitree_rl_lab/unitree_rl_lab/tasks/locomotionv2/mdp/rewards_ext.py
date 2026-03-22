@@ -129,6 +129,34 @@ def penalize_feet_forces(env: ManagerBasedRLEnv,
     _reward = torch.sum(_reward, dim=-1)
     return _reward
 
+def penalize_feet_forces_v2(env: ManagerBasedRLEnv,
+   sensor_cfg: SceneEntityCfg,
+   threshold: float = 500,
+   contact_time_threshold: float = 0.07,
+   max_over_penalize_forces: float = 400) -> torch.Tensor:
+    """
+    Penalizes excessive contact forces on the feet to discourage high impact.
+
+    Args:
+        env (ManagerBasedRLEnv): The simulation environment instance.
+        sensor_cfg (SceneEntityCfg): Sensor configuration including sensor name and body IDs.
+        threshold (float): Force threshold above which penalties are applied.
+        max_over_penalize_forces (float): Maximum force value to clip the penalty.
+
+    Returns:
+        torch.Tensor: The calculated penalty as the sum of clamped excessive forces from specified body parts.
+    """
+    # Retrieve the contact sensor instance.
+    contact_sensor: ContactSensor = env.scene.sensors[sensor_cfg.name]
+    # contact_flags
+    contact_flags = contact_sensor.data.current_contact_time[:, sensor_cfg.body_ids] < contact_time_threshold
+
+    forces = torch.norm(contact_sensor.data.net_forces_w[:, sensor_cfg.body_ids], dim=-1)
+    # Calculate penalty by clamping forces exceeding the threshold.
+    _reward = torch.clamp(forces - threshold, min=0, max=max_over_penalize_forces) * contact_flags.float()
+    # Sum penalties across all relevant body parts.
+    _reward = torch.sum(_reward, dim=-1)
+    return _reward
 
 def reward_foot_clearance(
     env: ManagerBasedRLEnv,

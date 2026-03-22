@@ -4,6 +4,8 @@ from unitree_rl_lab.tasks.locomotionv2.mdp import rewards_ext
 
 from isaaclab.managers import RewardTermCfg as RewTerm
 from isaaclab.managers import SceneEntityCfg
+from unitree_rl_lab.tasks.locomotion import mdp
+from unitree_rl_lab.tasks.locomotionv2.mdp import commands
 
 @configclass
 class Robot30EnvCfg(velocity_env_cfg.Robot30EnvCfg):
@@ -134,19 +136,71 @@ class Robot48New3PlayEnvCfg(Robot48PlayEnv4Cfg):
         self.rewards.reward_feet_clearance.func = rewards_ext.reward_foot_clearance
         self.rewards.penalize_feet_clearance.func = rewards_ext.penalize_foot_clearance
 
+from unitree_rl_lab.assets.robots.lyenbot_legs_48_knee_kp40 import LYENBOT_CFG as ROBOT48NEWKP40_CFG
 
 
 @configclass
-class Robot48New3_2EnvCfg(Robot48New3EnvCfg):
+class Robot48New3SlideEnvCfg(Robot48New3EnvCfg):
     def __post_init__(self):
         super().__post_init__()
-        self.rewards.reward_feet_clearance.func = rewards_ext.reward_foot_clearance_v2
-        self.rewards.penalize_feet_clearance.func = rewards_ext.reward_foot_clearance_v2
+        self.scene.robot = ROBOT48NEWKP40_CFG.replace(prim_path="{ENV_REGEX_NS}/Robot")
 
+        self.rewards.feet_slide = RewTerm(
+            func=mdp.feet_slide,
+            weight=-0.35,
+            params={
+                "asset_cfg": SceneEntityCfg("robot", body_names=".*ankle_roll.*"),
+                "sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*ankle_roll.*"),
+            },
+        )
+
+        self.rewards.penalize_feet_forces = RewTerm(
+            func=rewards_ext.penalize_feet_forces_v2,
+            weight=-0.05,
+            params={
+                "sensor_cfg": SceneEntityCfg(
+                    "contact_forces",
+                    body_names=["left_ankle_roll_link", "right_ankle_roll_link"]),
+                "threshold": 700,
+                "max_over_penalize_forces": 400,
+                },
+        )
+
+        self.commands.base_velocity.period = 0.8
+        self.commands.base_velocity.limit_ranges=commands.CommandWithPhaseCfg.Ranges(
+            lin_vel_x=(-0.6, 0.6), lin_vel_y=(-0.6, 0.6), ang_vel_z=(-0.6, 0.6)
+        )
 
 @configclass
-class Robot48New3_2PlayEnvCfg(Robot48New3PlayEnvCfg):
+class Robot48New3SlidePlayEnvCfg(Robot48New3PlayEnvCfg):
     def __post_init__(self):
         super().__post_init__()
-        self.rewards.reward_feet_clearance.func = rewards_ext.reward_foot_clearance_v2
-        self.rewards.penalize_feet_clearance.func = rewards_ext.reward_foot_clearance_v2
+        self.scene.robot = ROBOT48NEWKP40_CFG.replace(prim_path="{ENV_REGEX_NS}/Robot")
+
+        self.rewards.feet_slide = RewTerm(
+            func=mdp.feet_slide,
+            weight=-0.35,
+            params={
+                "asset_cfg": SceneEntityCfg("robot", body_names=".*ankle_roll.*"),
+                "sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*ankle_roll.*"),
+            },
+        )
+
+        self.rewards.penalize_feet_forces = RewTerm(
+            func=rewards_ext.penalize_feet_forces_v2,
+            weight=-0.05,
+            params={
+                "sensor_cfg": SceneEntityCfg(
+                    "contact_forces",
+                    body_names=["left_ankle_roll_link", "right_ankle_roll_link"]),
+                "threshold": 700,
+                "max_over_penalize_forces": 400,
+                },
+        )
+
+        self.commands.base_velocity.period = 0.8
+        self.commands.base_velocity.limit_ranges=commands.CommandWithPhaseCfg.Ranges(
+            lin_vel_x=(-0.6, 0.6), lin_vel_y=(-0.6, 0.6), ang_vel_z=(-0.6, 0.6)
+        )
+
+
