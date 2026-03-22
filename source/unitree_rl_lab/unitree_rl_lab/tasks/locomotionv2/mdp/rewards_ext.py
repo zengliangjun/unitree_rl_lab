@@ -321,3 +321,148 @@ def penalize_foot_clearance_v2(
     diff = torch.square(feet_error / std)
     return torch.mean(diff, dim=-1)
 
+# ============================================================================
+# 贝塞尔曲线奖励函数
+# ============================================================================
+from . import bezier
+
+def reward_foot_clearance_bezier(
+    env: ManagerBasedRLEnv,
+    command_name: str,
+    std: float,
+    max_height: float,
+    target_height: float,
+    speed: float,
+    asset_cfg: SceneEntityCfg,
+    control_points: list[tuple[float, float]] | None = [(0.0, 0.0), (0.25, 2), (0.8, 0.4), (1.0, 0.0)],
+    use_clamp: bool = True,
+    swing_phase_threshold: float = 0.003
+) -> torch.Tensor:
+    """
+    使用贝塞尔曲线奖励摆动脚离地高度（参数化版本）
+
+    通过贝塞尔曲线生成平滑的脚部轨迹目标，奖励脚部实际高度接近目标高度。
+
+    Args:
+        env: 环境实例
+        command_name: 命令名称
+        std: 标准差，用于计算奖励
+        max_height: 最大高度（未使用，为了兼容性保留）
+        target_height: 目标高度
+        speed: 速度参数（未使用，为了兼容性保留）
+        asset_cfg: 资产配置
+        control_points: 贝塞尔曲线控制点，支持多种格式：
+            - None: 使用默认控制点 [(0.0, 0.0), (0.2, 0.9), (0.8, 0.2), (1.0, 0.0)]
+            - 列表: [(0.0, 0.0), (0.2, 0.9), (0.8, 0.2), (1.0, 0.0)]
+            - 字符串: "0.0,0.0;0.2,0.9;0.8,0.2;1.0,0.0"
+        use_clamp: 是否使用clamp限制误差（只惩罚高度不足）
+        swing_phase_threshold: 摆动相位阈值，低于此值认为脚在地面
+
+    Returns:
+        torch.Tensor: 奖励值
+    """
+    cmd: commands.CommandWithPhase = env.command_manager.get_term(command_name)
+
+    # 使用摆动相位
+    swing_phase = cmd.feet_swing_phases
+
+    # 计算贝塞尔曲线目标高度
+    swing_target = bezier._bezier_target_height(swing_phase, target_height, control_points)
+
+    asset: Articulation = env.scene[asset_cfg.name]
+    feet_z = asset.data.body_pos_w[:, asset_cfg.body_ids, 2]
+
+    # 计算高度误差
+    feet_error = feet_z - swing_target
+
+    # 如果使用clamp，只惩罚高度不足（脚低于目标）
+    if use_clamp:
+        clamp_mask = swing_target > swing_phase_threshold
+        feet_error[clamp_mask] = torch.clamp_max(feet_error[clamp_mask], max=0)
+
+    # 计算指数奖励
+    diff = torch.square(feet_error / std)
+    feet_exp = torch.exp(-diff)
+
+    return torch.mean(feet_exp, dim=-1)
+
+
+def penalize_foot_clearance_bezier(
+    env: ManagerBasedRLEnv,
+    command_name: str,
+    std: float,
+    max_height: float,
+    target_height: float,
+    speed: float,
+    asset_cfg: SceneEntityCfg,
+    control_points: list[tuple[float, float]] | None = [(0.0, 0.0), (0.25, 2), (0.8, 0.4), (1.0, 0.0)],
+    use_clamp: bool = True,
+    swing_phase_threshold: float = 0.003
+) -> torch.Tensor:
+    """
+    使用贝塞尔曲线惩罚摆动脚离地高度误差（参数化版本）
+
+    通过贝塞尔曲线生成平滑的脚部轨迹目标，惩罚脚部实际高度与目标高度的偏差。
+
+    Args:
+        env: 环境实例
+        command_name: 命令名称
+        std: 标准差，用于计算惩罚
+        max_height: 最大高度（未使用，为了兼容性保留）
+        target_height: 目标高度
+        speed: 速度参数（未使用，为了兼容性保留）
+        asset_cfg: 资产配置
+        control_points: 贝塞尔曲线控制点，支持多种格式：
+            - None: 使用默认控制点 [(0.0, 0.0), (0.2, 0.9), (0.8, 0.2), (1.0, 0.0)]
+            - 列表: [(0.0, 0.0), (0.2, 0.9), (0.8, 0.2), (1.0, 0.0)]
+            - 字符串: "0.0,0.0;0.2,0.9;0.8,0.2;1.0,0.0"
+        use_clamp: 是否使用clamp限制误差（只惩罚高度不足）
+        swing_phase_threshold: 摆动相位阈值，低于此值认为脚在地面
+
+    Returns:
+        torch.Tensor: 惩罚值
+    """
+    cmd: commands.CommandWithPhase = env.command_manager.get_term(command_name)
+
+    # 使用摆动相位
+    swing_phase = cmd.feet_swing_phases
+
+    # 计算贝塞尔曲线目标高度
+    swing_target = bezier._bezier_target_height(swing_phase, target_height, control_points)
+
+    asset: Articulation = env.scene[asset_cfg.name]
+    feet_z = asset.data.body_pos_w[:, asset_cfg.body_ids, 2]
+
+    # 计算高度误差
+    feet_error = feet_z - swing_target
+
+    # 如果使用clamp，只惩罚高度不足（脚低于目标）
+    if use_clamp:
+        clamp_mask = swing_target > swing_phase_threshold
+        feet_error[clamp_mask] = torch.clamp_max(feet_error[clamp_mask], max=0)
+
+    # 计算平方误差惩罚
+    diff = torch.square(feet_error / std)
+
+    return torch.mean(diff, dim=-1)
+
+
+# ============================================================================
+# 预设控制点配置
+# ============================================================================
+
+# 默认三次贝塞尔曲线（快速上升，缓慢下降）
+DEFAULT_CUBIC_BEZIER_POINTS = [(0.0, 0.0), (0.2, 0.9), (0.8, 0.2), (1.0, 0.0)]
+
+# 二次贝塞尔曲线（对称抛物线）
+DEFAULT_QUADRATIC_BEZIER_POINTS = [(0.0, 0.0), (0.5, 1.0), (1.0, 0.0)]
+
+# 四次贝塞尔曲线（更复杂的轨迹）
+DEFAULT_QUARTIC_BEZIER_POINTS = [(0.0, 0.0), (0.2, 0.7), (0.4, 1.0), (0.6, 0.8), (1.0, 0.0)]
+
+# 线性插值（与v2版本类似，但平滑）
+DEFAULT_LINEAR_POINTS = [(0.0, 0.0), (1.0, 0.0)]
+
+# 正弦曲线近似（与原始版本类似）
+DEFAULT_SINUSOIDAL_POINTS = [(0.0, 0.0), (0.25, 0.5), (0.5, 1.0), (0.75, 0.5), (1.0, 0.0)]
+
