@@ -62,11 +62,31 @@ def penalize_feet_gait(
     penalize = (is_swing ^ is_contact)
     return torch.sum(penalize, dim=-1)
 
+
 def penalty_orientation(env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")):
     asset: Articulation = env.scene[asset_cfg.name]
     gw = torch.repeat_interleave(asset.data.GRAVITY_VEC_W.unsqueeze(1), repeats=len(asset_cfg.body_ids), dim=1)
     body_gravity_b = math_utils.quat_apply_inverse(asset.data.body_quat_w[:, asset_cfg.body_ids], gw)
     return torch.sum(torch.sum(torch.square(body_gravity_b[:, :, :2]), dim=-1), dim=-1)
+
+
+def penalty_contact_orientation(
+    env: ManagerBasedRLEnv,
+    std: float,
+    sensor_cfg: SceneEntityCfg,
+    asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")):
+
+    contact_sensor: ContactSensor = env.scene.sensors[sensor_cfg.name]
+    no_contact = contact_sensor.data.current_contact_time[:, sensor_cfg.body_ids] < 0.005
+
+    asset: Articulation = env.scene[asset_cfg.name]
+    gw = torch.repeat_interleave(asset.data.GRAVITY_VEC_W.unsqueeze(1), repeats=len(asset_cfg.body_ids), dim=1)
+    body_gravity_b = math_utils.quat_apply_inverse(asset.data.body_quat_w[:, asset_cfg.body_ids], gw)
+
+    error = torch.norm(body_gravity_b[:, :, :2], dim=-1) / std
+    error[no_contact] = 0
+
+    return torch.sum(error, dim=-1)
 
 
 def feet_slide(env,
@@ -80,6 +100,19 @@ def feet_slide(env,
 
     body_vel = asset.data.body_lin_vel_w[:, asset_cfg.body_ids]
     reward = torch.sum(body_vel.norm(dim=-1) * stand_phases.float(), dim= -1)
+    return reward
+
+
+def feet_slide_ang(env,
+    sensor_cfg: SceneEntityCfg,
+    asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")) -> torch.Tensor:
+
+    contact_sensor: ContactSensor = env.scene.sensors[sensor_cfg.name]
+    contacts = contact_sensor.data.net_forces_w_history[:, :, sensor_cfg.body_ids, :].norm(dim=-1).max(dim=1)[0] > 1.0
+    asset: Articulation = env.scene[asset_cfg.name]
+
+    body_vel = asset.data.body_ang_vel_w[:, asset_cfg.body_ids, :]
+    reward = torch.sum(body_vel.norm(dim=-1) * contacts, dim=1)
     return reward
 
 
@@ -100,8 +133,33 @@ def reward_feet_width(
     #error = torch.square((torch.abs(body_pos[:, 0::2, 1] - body_pos[:, 1::2, 1]) - target_width) / std)
     error = torch.abs((torch.abs(body_pos[:, 0::2, 1] - body_pos[:, 1::2, 1]) - target_width) / std)
 
-    # 将偏差放大（乘以 100），计算其指数惩罚，最后求所有对的平均值作为最终 reward
-    return - torch.norm(error, dim=-1) + torch.norm(torch.exp(- error), dim = -1)
+    return - torch.norm(error, dim=-1) + torch.norm(torch.exp(- error), dim=-1)
+
+
+def reward_feet_widthv2(
+    env: ManagerBasedRLEnv,
+    asset_cfg: SceneEntityCfg,
+    target_width: float = 0.2,
+    std: float = 0.04
+) -> torch.Tensor:
+
+    asset: Articulation = env.scene[asset_cfg.name]
+    body_pos_w = asset.data.body_pos_w[:, asset_cfg.body_ids]
+
+    quat_w = torch.repeat_interleave(asset.data.root_link_quat_w[:, None, :], body_pos_w.shape[1], dim=1)
+
+    body_pos = math_utils.quat_apply_inverse(quat_w, body_pos_w)
+
+    #error = torch.square((torch.abs(body_pos[:, 0::2, 1] - body_pos[:, 1::2, 1]) - target_width) / std)
+    error = (torch.abs(body_pos[:, 0::2, 1] - body_pos[:, 1::2, 1]) - target_width)
+    iner_flag = error < 0
+    out_flag = error > 0
+
+    error[iner_flag] = torch.square(error[iner_flag] / (std / 2))
+    error[out_flag] = torch.square(error[out_flag] / std)
+
+    return - torch.norm(error, dim=-1) + torch.norm(torch.exp(- error), dim=-1)
+
 
 def penalize_feet_forces(env: ManagerBasedRLEnv,
    sensor_cfg: SceneEntityCfg,
@@ -157,37 +215,6 @@ def penalize_feet_forces_v2(env: ManagerBasedRLEnv,
     # Sum penalties across all relevant body parts.
     _reward = torch.sum(_reward, dim=-1)
     return _reward
-
-def penalize_feet_forces_v2(env: ManagerBasedRLEnv,
-   sensor_cfg: SceneEntityCfg,
-   threshold: float = 500,
-   contact_time_threshold: float = 0.07,
-   max_over_penalize_forces: float = 400) -> torch.Tensor:
-    """
-    Penalizes excessive contact forces on the feet to discourage high impact.
-
-    Args:
-        env (ManagerBasedRLEnv): The simulation environment instance.
-        sensor_cfg (SceneEntityCfg): Sensor configuration including sensor name and body IDs.
-        threshold (float): Force threshold above which penalties are applied.
-        max_over_penalize_forces (float): Maximum force value to clip the penalty.
-
-    Returns:
-        torch.Tensor: The calculated penalty as the sum of clamped excessive forces from specified body parts.
-    """
-    # Retrieve the contact sensor instance.
-    contact_sensor: ContactSensor = env.scene.sensors[sensor_cfg.name]
-    # contact_flags
-    contact_flags = contact_sensor.data.current_contact_time[:, sensor_cfg.body_ids] < contact_time_threshold
-
-    forces = torch.norm(contact_sensor.data.net_forces_w[:, sensor_cfg.body_ids], dim=-1)
-    # Calculate penalty by clamping forces exceeding the threshold.
-    _reward = torch.clamp(forces - threshold, min=0, max=max_over_penalize_forces) * contact_flags.float()
-    # Sum penalties across all relevant body parts.
-    _reward = torch.sum(_reward, dim=-1)
-    return _reward
-
-
 
 def reward_foot_clearance(
     env: ManagerBasedRLEnv,
@@ -253,6 +280,7 @@ def penalize_foot_clearance(
 
     diff = torch.square(feet_error / std)
     return torch.mean(diff, dim=-1)
+
 
 def reward_foot_clearance_v2(
     env: ManagerBasedRLEnv,
@@ -320,6 +348,26 @@ def penalize_foot_clearance_v2(
 
     diff = torch.square(feet_error / std)
     return torch.mean(diff, dim=-1)
+
+
+def flat_orientation_x(env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")) -> torch.Tensor:
+    """Penalize non-flat base orientation using L2 squared kernel.
+
+    This is computed by penalizing the xy-components of the projected gravity vector.
+    """
+    # extract the used quantities (to enable type-hinting)
+    asset: Articulation = env.scene[asset_cfg.name]
+    return torch.abs(asset.data.projected_gravity_b[:, 0])
+
+
+def flat_orientation_y(env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")) -> torch.Tensor:
+    """Penalize non-flat base orientation using L2 squared kernel.
+
+    This is computed by penalizing the xy-components of the projected gravity vector.
+    """
+    # extract the used quantities (to enable type-hinting)
+    asset: Articulation = env.scene[asset_cfg.name]
+    return torch.abs(asset.data.projected_gravity_b[:, 1])
 
 # ============================================================================
 # 贝塞尔曲线奖励函数
